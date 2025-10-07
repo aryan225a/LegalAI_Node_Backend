@@ -52,11 +52,11 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/chat', chatRoutes);
-app.use('/api/v1/documents', documentRoutes);
-app.use('/api/v1/translation', translationRoutes);
-app.use('/api/v1/user', userRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/documents', documentRoutes);
+app.use('/api/translation', translationRoutes);
+app.use('/api/user', userRoutes);
 
 // 404 handler - catch all unmatched routes
 app.use((req, res) => {
