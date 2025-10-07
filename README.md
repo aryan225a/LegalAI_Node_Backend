@@ -57,7 +57,77 @@ npm run dev
 
 ---
 
-## 🛣️ Project Roadmap
+## � API Routes
+
+### Health Check
+* `GET /health` - Server health status
+
+### Authentication Routes (`/api/v1/auth`)
+
+#### Local Authentication
+* `POST /api/v1/auth/register` - Register a new user
+* `POST /api/v1/auth/login` - Login with credentials
+* `POST /api/v1/auth/refresh` - Refresh access token
+* `POST /api/v1/auth/logout` - Logout user (requires authentication)
+* `GET /api/v1/auth/me` - Get current user info (requires authentication)
+
+#### OAuth Authentication
+* `GET /api/v1/auth/google` - Initiate Google OAuth login
+* `GET /api/v1/auth/google/callback` - Google OAuth callback
+* `GET /api/v1/auth/meta` - Initiate Meta/Facebook OAuth login
+* `GET /api/v1/auth/meta/callback` - Meta OAuth callback
+
+### User Routes (`/api/v1/user`) 🔒
+All user routes require authentication.
+
+* `GET /api/v1/user/profile` - Get user profile
+* `PUT /api/v1/user/profile` - Update user profile
+* `GET /api/v1/user/stats` - Get user statistics
+
+### Chat Routes (`/api/v1/chat`)
+
+#### Public Routes
+* `GET /api/v1/chat/shared/:shareLink` - Get shared conversation (no auth required)
+
+#### Protected Routes 🔒
+All routes below require authentication.
+
+* `POST /api/v1/chat/conversations` - Create new conversation
+  - Body: `{ mode: 'NORMAL' | 'AGENTIC', title?, documentId?, documentName?, sessionId? }`
+* `GET /api/v1/chat/conversations` - Get all user conversations
+* `DELETE /api/v1/chat/conversations` - Delete all user conversations
+* `GET /api/v1/chat/conversations/:conversationId` - Get conversation messages
+* `GET /api/v1/chat/conversations/:conversationId/info` - Get conversation info
+* `POST /api/v1/chat/conversations/:conversationId/messages` - Send message
+  - Body: `{ message, mode }`
+  - Optional file upload (for AGENTIC mode): PDF, DOC, DOCX, TXT (max 10MB)
+* `POST /api/v1/chat/conversations/:conversationId/share` - Share/unshare conversation
+  - Body: `{ share: boolean }`
+* `DELETE /api/v1/chat/conversations/:conversationId` - Delete conversation
+
+### Document Routes (`/api/v1/documents`) 🔒
+All document routes require authentication.
+
+* `POST /api/v1/documents` - Generate new document
+  - Body: `{ prompt: string (10-5000 chars), format?: 'pdf' | 'docx' | 'txt' }`
+* `GET /api/v1/documents` - Get all user documents
+* `GET /api/v1/documents/:id` - Get specific document
+* `DELETE /api/v1/documents/:id` - Delete document
+
+### Translation Routes (`/api/v1/translation`) 🔒
+All translation routes require authentication.
+
+* `POST /api/v1/translation/translate` - Translate text
+  - Body: `{ text: string, sourceLang: string, targetLang: string }`
+* `POST /api/v1/translation/detect-language` - Detect language of text
+  - Body: `{ text: string }`
+* `GET /api/v1/translation/history` - Get translation history (up to 50 recent)
+
+> 🔒 Routes marked with this icon require JWT authentication via the `Authorization: Bearer <token>` header.
+
+---
+
+## �🛣️ Project Roadmap
 
 * **Implement Real-time Streaming**: Proxy token streams from the Python AI backend to the frontend for a "typing" effect.
 * **Document Management Dashboard**: Build out endpoints for the frontend to list, view, and manage uploaded documents.
