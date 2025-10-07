@@ -383,7 +383,7 @@ class ChatService {
     // Clear cache
     await cacheService.clearUserCache(userId);
 
-    // CRITICAL: Return the assistant message, not the user message
+    //Return the assistant message
     return {
       message: assistantMessage, 
       conversation: {
