@@ -198,24 +198,24 @@ class ChatService {
     sessionId?: string,
     clientProvidedId?: string
   ) {
+    const conversationData: any = {
+      userId,
+      title,
+      mode,
+      documentId: documentId || null,
+      documentName: documentName || null,
+      sessionId: sessionId || null,
+    };
+
+    // If a client-provided ID is given, use it when creating the conversation
     if (clientProvidedId) {
-      const exists = await prisma.conversation.findUnique({
-        where: { id: clientProvidedId },
-      });
-      if (exists) {
-        throw new AppError('Conversation ID already exists', 409);
-      }
+      conversationData.id = clientProvidedId;
+    } else {
+      conversationData.id = crypto.randomUUID(); //Fallback id is there is no client-provided ID
     }
+
     const conversation = await prisma.conversation.create({
-      data: {
-        id: clientProvidedId ?? undefined,
-        userId,
-        title,
-        mode,
-        documentId: documentId || null,
-        documentName: documentName || null,
-        sessionId: sessionId || null,
-      },
+      data: conversationData,
     });
 
     return conversation;
