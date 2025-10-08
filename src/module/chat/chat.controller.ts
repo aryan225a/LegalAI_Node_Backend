@@ -27,7 +27,7 @@ class ChatController {
                 success: false,
                 message: 'Mode is required and must be either NORMAL or AGENTIC',
             });
-          }
+        }
 
         // Use provided title or generate a default one
         const conversationTitle = title || `${mode} Chat - ${new Date().toLocaleString()}`;
@@ -42,14 +42,17 @@ class ChatController {
             id  // Pass the client-provided ID
         );
 
-        res.status(201).json({
+        // Return 200 if conversation already existed, 201 if newly created
+        const statusCode = req.body.id && conversation.createdAt < new Date(Date.now() - 1000) ? 200 : 201;
+
+        res.status(statusCode).json({
             success: true,
             data: conversation,
         });
-        }
-        catch (error) {
-            next(error);
-      }
+    }
+    catch (error) {
+        next(error);
+    }
   }
 
   /**
@@ -86,10 +89,10 @@ class ChatController {
         });
       }
 
-      if (!message) {
+      if (!message || message.trim() === '') {
         return res.status(400).json({
           success: false,
-          message: 'Message is required',
+          message: 'Message is required and cannot be empty',
         });
       }
 
@@ -269,7 +272,9 @@ class ChatController {
       } else {
         res.status(200).json({
           success: true,
-          message: 'Conversation sharing disabled',
+          data: {
+            message: 'Conversation sharing disabled',
+          },
         });
       }
     } catch (error) {

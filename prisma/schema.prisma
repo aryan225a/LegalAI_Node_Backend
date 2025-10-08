@@ -57,7 +57,7 @@ model User {
 }
 
 model Conversation {
-  id            String        @id @default(cuid())
+  id            String        @id
   userId        String
   title         String
   mode          ChatMode      @default(NORMAL)
@@ -91,7 +91,7 @@ model Conversation {
 }
 
 model Message {
-  id              String        @id @default(cuid())
+  id              String        @id
   conversationId  String
   role            MessageRole
   content         String        @db.Text
