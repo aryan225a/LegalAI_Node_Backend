@@ -9,7 +9,7 @@ class ChatController {
     async createConversation(req, res, next) {
         try {
             const userId = req.user.id;
-            const { title, mode, documentId, documentName, sessionId } = req.body;
+            const { id, title, mode, documentId, documentName, sessionId } = req.body;
             // Validation
             if (!mode || !['NORMAL', 'AGENTIC'].includes(mode)) {
                 return res.status(400).json({
@@ -19,8 +19,11 @@ class ChatController {
             }
             // Use provided title or generate a default one
             const conversationTitle = title || `${mode} Chat - ${new Date().toLocaleString()}`;
-            const conversation = await chatService.createConversation(userId, conversationTitle, mode, documentId, documentName, sessionId);
-            res.status(201).json({
+            const conversation = await chatService.createConversation(userId, conversationTitle, mode, documentId, documentName, sessionId, id // Pass the client-provided ID
+            );
+            // Return 200 if conversation already existed, 201 if newly created
+            const statusCode = req.body.id && conversation.createdAt < new Date(Date.now() - 1000) ? 200 : 201;
+            res.status(statusCode).json({
                 success: true,
                 data: conversation,
             });
@@ -60,10 +63,10 @@ class ChatController {
                     message: 'Conversation ID is required',
                 });
             }
-            if (!message) {
+            if (!message || message.trim() === '') {
                 return res.status(400).json({
                     success: false,
-                    message: 'Message is required',
+                    message: 'Message is required and cannot be empty',
                 });
             }
             if (!mode || !['NORMAL', 'AGENTIC'].includes(mode)) {
@@ -210,7 +213,9 @@ class ChatController {
             else {
                 res.status(200).json({
                     success: true,
-                    message: 'Conversation sharing disabled',
+                    data: {
+                        message: 'Conversation sharing disabled',
+                    },
                 });
             }
         }

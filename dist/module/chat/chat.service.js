@@ -167,20 +167,52 @@ function getMetadata(response) {
     return {};
 }
 class ChatService {
-    async createConversation(userId, title, mode, documentId, documentName, sessionId) {
-        const conversation = await prisma.conversation.create({
-            data: {
+    async createConversation(userId, title, mode, documentId, documentName, sessionId, clientProvidedId) {
+        try {
+            const conversationData = {
                 userId,
                 title,
                 mode,
                 documentId: documentId || null,
                 documentName: documentName || null,
                 sessionId: sessionId || null,
-            },
-        });
-        return conversation;
+            };
+            // If a client-provided ID is given, use it when creating the conversation
+            if (clientProvidedId) {
+                conversationData.id = clientProvidedId;
+            }
+            else {
+                conversationData.id = crypto.randomUUID();
+            }
+            const conversation = await prisma.conversation.create({
+                data: conversationData,
+            });
+            return conversation;
+        }
+        catch (error) {
+            // Handle unique constraint violation (duplicate ID)
+            if (error.code === 'P2002' && error.meta?.target?.includes('id')) {
+                // ID already exists, try with a new one
+                console.warn('Client ID collision, generating new ID');
+                const conversationData = {
+                    userId,
+                    title,
+                    mode,
+                    documentId: documentId || null,
+                    documentName: documentName || null,
+                    sessionId: sessionId || null,
+                    id: crypto.randomUUID(), // Generate new ID
+                };
+                const conversation = await prisma.conversation.create({
+                    data: conversationData,
+                });
+                return conversation;
+            }
+            throw error;
+        }
     }
     async sendMessage(userId, conversationId, message, mode, file, inputLanguage, outputLanguage) {
+        // First, ensure conversation exists and belongs to user
         const conversation = await prisma.conversation.findFirst({
             where: { id: conversationId, userId },
             include: {
@@ -191,7 +223,9 @@ class ChatService {
             },
         });
         if (!conversation) {
-            throw new AppError('Conversation not found', 404);
+            // This should rarely happen with the new flow, but handle it gracefully
+            console.error(`Conversation ${conversationId} not found for user ${userId}`);
+            throw new AppError('Conversation not found. Please create a new conversation.', 404);
         }
         // Check cache (only for non-file queries)
         if (!file) {
@@ -200,13 +234,16 @@ class ChatService {
                 // Save user message
                 const userMessage = await prisma.message.create({
                     data: {
+                        id: crypto.randomUUID(),
                         conversationId,
                         role: 'USER',
                         content: message,
+                        attachments: [],
                     },
                 });
                 const assistantMessage = await prisma.message.create({
                     data: {
+                        id: crypto.randomUUID(),
                         conversationId,
                         role: 'ASSISTANT',
                         content: getResponseText(cachedResponse),
@@ -214,13 +251,13 @@ class ChatService {
                             cached: true,
                             ...getSimplifiedMetadata(cachedResponse)
                         },
+                        attachments: [],
                     },
                 });
                 await prisma.conversation.update({
                     where: { id: conversationId },
                     data: { lastMessageAt: new Date() },
                 });
-                // IMPORTANT: Return the assistant message in the expected format
                 return {
                     message: assistantMessage,
                     conversation: {
@@ -285,6 +322,7 @@ class ChatService {
         // Save user message
         const userMessage = await prisma.message.create({
             data: {
+                id: crypto.randomUUID(),
                 conversationId,
                 role: 'USER',
                 content: message,
@@ -297,6 +335,7 @@ class ChatService {
         // Save assistant message
         const assistantMessage = await prisma.message.create({
             data: {
+                id: crypto.randomUUID(),
                 conversationId,
                 role: 'ASSISTANT',
                 content: messageContent,
@@ -304,6 +343,7 @@ class ChatService {
                     ...getSimplifiedMetadata(aiResponse),
                     document_id: conversation.documentId || getDocumentId(aiResponse),
                 },
+                attachments: [],
             },
         });
         // Update conversation timestamp
@@ -313,9 +353,8 @@ class ChatService {
         });
         // Clear cache
         await cacheService.clearUserCache(userId);
-        // CRITICAL: Return the assistant message, not the user message
         return {
-            message: assistantMessage, // ← This should be the assistant's response
+            message: assistantMessage,
             conversation: {
                 id: conversationId,
                 sessionId: getSessionId(aiResponse),

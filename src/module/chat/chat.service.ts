@@ -277,14 +277,17 @@ class ChatService {
         // Save user message
         const userMessage = await prisma.message.create({
           data: {
+            id: crypto.randomUUID(),
             conversationId,
             role: 'USER',
             content: message,
+            attachments: [],
           },
         });
 
         const assistantMessage = await prisma.message.create({
           data: {
+            id: crypto.randomUUID(),
             conversationId,
             role: 'ASSISTANT',
             content: getResponseText(cachedResponse),
@@ -292,6 +295,7 @@ class ChatService {
               cached: true,
               ...getSimplifiedMetadata(cachedResponse)
             },
+            attachments: [],
           },
         });
 
@@ -385,6 +389,7 @@ class ChatService {
     // Save user message
     const userMessage = await prisma.message.create({
       data: {
+        id: crypto.randomUUID(),
         conversationId,
         role: 'USER',
         content: message,
@@ -399,6 +404,7 @@ class ChatService {
     // Save assistant message
     const assistantMessage = await prisma.message.create({
       data: {
+        id: crypto.randomUUID(),
         conversationId,
         role: 'ASSISTANT',
         content: messageContent,
@@ -406,6 +412,7 @@ class ChatService {
           ...getSimplifiedMetadata(aiResponse),
           document_id: conversation.documentId || getDocumentId(aiResponse),
         },
+        attachments: [],
       },
     });
 

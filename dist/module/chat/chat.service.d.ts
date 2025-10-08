@@ -1,5 +1,5 @@
 declare class ChatService {
-    createConversation(userId: string, title: string, mode: 'NORMAL' | 'AGENTIC', documentId?: string, documentName?: string, sessionId?: string): Promise<{
+    createConversation(userId: string, title: string, mode: 'NORMAL' | 'AGENTIC', documentId?: string, documentName?: string, sessionId?: string, clientProvidedId?: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
