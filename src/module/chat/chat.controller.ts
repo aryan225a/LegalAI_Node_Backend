@@ -19,18 +19,26 @@ class ChatController {
   async createConversation(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;
-      const { title, mode, documentId, documentName, sessionId } = req.body;
+      const { id, title, mode, documentId, documentName, sessionId } = req.body;
 
       // Validation
       if (!mode || !['NORMAL', 'AGENTIC'].includes(mode)) {
         return res.status(400).json({
           success: false,
-          message: 'Mode is required and must be either NORMAL or AGENTIC',
+          message: 'Mode must be NORMAL or AGENTIC',
+        });
+      }
+
+      //Validate UUID 
+       if (id && !/^[0-9a-fA-F-]{36}$/.test(id) && !/^c[a-z0-9]{24}$/.test(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid conversation ID format (must be UUID or cuid)',
         });
       }
 
       // Use provided title or generate a default one
-      const conversationTitle = title || `${mode} Chat - ${new Date().toLocaleString()}`;
+      const conversationTitle =  title || `${mode} Chat - ${new Date().toLocaleString()}`;
 
       const conversation = await chatService.createConversation(
         userId, 
@@ -38,7 +46,8 @@ class ChatController {
         mode,
         documentId,
         documentName,
-        sessionId
+        sessionId,
+        id
       );
 
       res.status(201).json({

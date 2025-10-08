@@ -195,10 +195,20 @@ class ChatService {
     mode: 'NORMAL' | 'AGENTIC',
     documentId?: string,
     documentName?: string,
-    sessionId?: string
+    sessionId?: string,
+    clientProvidedId?: string
   ) {
+    if (clientProvidedId) {
+      const exists = await prisma.conversation.findUnique({
+        where: { id: clientProvidedId },
+      });
+      if (exists) {
+        throw new AppError('Conversation ID already exists', 409);
+      }
+    }
     const conversation = await prisma.conversation.create({
       data: {
+        id: clientProvidedId ?? undefined,
         userId,
         title,
         mode,
