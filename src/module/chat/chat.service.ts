@@ -190,59 +190,36 @@ function getMetadata(response: AIResponse): Record<string, any> {
 
 class ChatService {
   async createConversation(
-  userId: string, 
-  title: string, 
-  mode: 'NORMAL' | 'AGENTIC',
-  documentId?: string,
-  documentName?: string,
-  sessionId?: string,
-  clientProvidedId?: string
+    userId: string, 
+    title: string, 
+    mode: 'NORMAL' | 'AGENTIC',
+    documentId?: string,
+    documentName?: string,
+    sessionId?: string,
+    clientProvidedId?: string
   ) {
-    try {
-      const conversationData: any = {
-        userId,
-        title,
-        mode,
-        documentId: documentId || null,
-        documentName: documentName || null,
-        sessionId: sessionId || null,
-      };
+    const conversationData: any = {
+      userId,
+      title,
+      mode,
+      documentId: documentId || null,
+      documentName: documentName || null,
+      sessionId: sessionId || null,
+    };
 
     // If a client-provided ID is given, use it when creating the conversation
     if (clientProvidedId) {
-        conversationData.id = clientProvidedId;
+      conversationData.id = clientProvidedId;
     } else {
-        conversationData.id = crypto.randomUUID();
+      conversationData.id = crypto.randomUUID(); //Fallback id is there is no client-provided ID
     }
 
     const conversation = await prisma.conversation.create({
       data: conversationData,
     });
 
-      return conversation;
-    } catch (error: any) {
-      // Handle unique constraint violation (duplicate ID)
-      if (error.code === 'P2002' && error.meta?.target?.includes('id')) {
-      // ID already exists, try with a new one
-      console.warn('Client ID collision, generating new ID');
-      const conversationData: any = {
-        userId,
-        title,
-        mode,
-        documentId: documentId || null,
-        documentName: documentName || null,
-        sessionId: sessionId || null,
-        id: crypto.randomUUID(), // Generate new ID
-    };
-
-      const conversation = await prisma.conversation.create({
-        data: conversationData,
-      });
-      return conversation;
-    }
-    throw error;
+    return conversation;
   }
-}
 
   async sendMessage(
     userId: string,
@@ -253,7 +230,6 @@ class ChatService {
     inputLanguage?: string,
     outputLanguage?: string
   ) {
-    // First, ensure conversation exists and belongs to user
     const conversation = await prisma.conversation.findFirst({
       where: { id: conversationId, userId },
       include: {
@@ -265,9 +241,7 @@ class ChatService {
     });
 
     if (!conversation) {
-      // This should rarely happen with the new flow, but handle it gracefully
-      console.error(`Conversation ${conversationId} not found for user ${userId}`);
-      throw new AppError('Conversation not found. Please create a new conversation.', 404);
+      throw new AppError('Conversation not found', 404);
     }
 
     // Check cache (only for non-file queries)
@@ -281,7 +255,6 @@ class ChatService {
             conversationId,
             role: 'USER',
             content: message,
-            attachments: [],
           },
         });
 
@@ -295,7 +268,6 @@ class ChatService {
               cached: true,
               ...getSimplifiedMetadata(cachedResponse)
             },
-            attachments: [],
           },
         });
 
@@ -304,6 +276,7 @@ class ChatService {
           data: { lastMessageAt: new Date() },
         });
 
+        // IMPORTANT: Return the assistant message in the expected format
         return {
           message: assistantMessage,
           conversation: {
@@ -412,7 +385,6 @@ class ChatService {
           ...getSimplifiedMetadata(aiResponse),
           document_id: conversation.documentId || getDocumentId(aiResponse),
         },
-        attachments: [],
       },
     });
 
@@ -425,6 +397,7 @@ class ChatService {
     // Clear cache
     await cacheService.clearUserCache(userId);
 
+    //Return the assistant message
     return {
       message: assistantMessage, 
       conversation: {
