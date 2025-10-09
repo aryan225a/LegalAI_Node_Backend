@@ -140,8 +140,9 @@ class AuthService {
       },
     });
 
-    // Clear user cache
+    // Clear user cache and persistent rate limit counters so limits reset on logout
     await cacheService.clearUserCache(userId);
+    await cacheService.clearUserRateLimits(userId);
   }
 
   private generateTokens(userId: string) {

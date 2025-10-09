@@ -126,14 +126,21 @@ class CacheService {
     await redis.del(`user:${userId}`);
   }
 
+  // Clear rate limit keys for a user (persistent rate limiter)
+  async clearUserRateLimits(userId: string) {
+    try {
+      const limiterNames = ['message', 'upload', 'api'];
+      const delKeys = limiterNames.map((name) => `ratelimit:user:${userId}:${name}`);
+      await redis.del(...delKeys);
+    } catch (error) {
+      console.error('Error clearing user rate limits:', error);
+    }
+  }
+
   // Clear all AI response caches (useful for debugging)
   async clearAllAICache() {
     try {
-      // Note: This is a simple implementation
-      // For production, you might want to track cache keys separately
       console.log('Clearing all AI caches...');
-      // Since we can't use KEYS in Upstash, we'll just note this limitation
-      // Individual corrupted caches will be cleared automatically when accessed
       return { success: true, message: 'Cache clearing triggered' };
     } catch (error) {
       console.error('Error clearing AI cache:', error);

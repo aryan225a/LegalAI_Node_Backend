@@ -19,7 +19,7 @@ class PythonBackendService {
   constructor() {
     
     // Hugging Face Spaces Wakeup Time
-    const timeout = parseInt(process.env.PYTHON_BACKEND_TIMEOUT || '120000'); // 120s default
+    const timeout = parseInt(process.env.PYTHON_BACKEND_TIMEOUT || '180000'); // 180s default
     
     this.client = axios.create({
       baseURL: process.env.PYTHON_BACKEND_URL,
