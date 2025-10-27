@@ -9,14 +9,8 @@ import {
   ChatResponse 
 } from '../../types/python-backend.types.js';
 
-// Union type for all possible AI response types
-// NORMAL mode: ChatResponse (simple response)
-// AGENTIC mode: 
-//   - AgentChatResponse (with session_id only document_id is optional)
-//   - UploadAndChatResponse (with both document_id and session_id when uploading a document)
 type AIResponse = AgentChatResponse | UploadAndChatResponse | ChatResponse;
 
-// Type guards for agentic mode responses
 function isUploadAndChatResponse(response: AIResponse): response is UploadAndChatResponse {
   return 'document_id' in response && 'agent_response' in response;
 }
@@ -25,13 +19,11 @@ function isAgentChatResponse(response: AIResponse): response is AgentChatRespons
   return 'session_id' in response && !('document_id' in response);
 }
 
-// Helper functions to extract data from different response types
 function getResponseText(response: AIResponse): string {
   try {
     let mainResponse: any = '';
     
     if (isUploadAndChatResponse(response)) {
-      // agent_response is a string containing the full formatted response
       mainResponse = response.agent_response || '';
     } else if (isAgentChatResponse(response)) {
       mainResponse = response.response || '';
@@ -39,7 +31,6 @@ function getResponseText(response: AIResponse): string {
       mainResponse = response.response || '';
     }
     
-    // If main response is empty, try to extract from intermediate_steps
     if (!mainResponse || (typeof mainResponse === 'string' && mainResponse.trim() === '')) {
       const metadata = getMetadata(response);
       if (metadata.intermediate_steps && Array.isArray(metadata.intermediate_steps)) {
@@ -95,13 +86,11 @@ function getDocumentId(response: AIResponse): string | undefined {
   return undefined;
 }
 
-// Simplified metadata 
 function getSimplifiedMetadata(response: AIResponse): Record<string, any> {
   const baseMetadata: Record<string, any> = {
     tools_used: [],
   };
 
-  // Extract tools with details from intermediate_steps
   const fullMetadata = getMetadata(response);
   const intermediateSteps = fullMetadata.intermediate_steps || [];
   
@@ -110,7 +99,6 @@ function getSimplifiedMetadata(response: AIResponse): Record<string, any> {
       tool: step.tool || 'unknown',
     };
     
-    // Extract query_time and chunks info from result
     if (step.result) {
       if (typeof step.result === 'object') {
         if (step.result.query_time !== undefined) {
@@ -128,11 +116,10 @@ function getSimplifiedMetadata(response: AIResponse): Record<string, any> {
     return toolInfo;
   });
 
-  // Fallback to simple tool names if no detailed tools found
+
   if (toolsWithDetails.length > 0) {
     baseMetadata.tools_used = toolsWithDetails;
   } else {
-    // Extract tools_used based on response type
     let simpleTools: string[] = [];
     if (isUploadAndChatResponse(response)) {
       simpleTools = response.tools_used || [];
@@ -142,12 +129,10 @@ function getSimplifiedMetadata(response: AIResponse): Record<string, any> {
     baseMetadata.tools_used = simpleTools.map((tool: string) => ({ tool }));
   }
 
-  // Add document_id for upload responses
   if (isUploadAndChatResponse(response)) {
     baseMetadata.document_id = response.document_id;
   }
 
-  // Calculate totals for all tools
   let totalQueryTime = 0;
   let maxTotalChunks = 0;
   
@@ -166,7 +151,6 @@ function getSimplifiedMetadata(response: AIResponse): Record<string, any> {
   return baseMetadata;
 }
 
-// Full metadata for internal processing 
 function getMetadata(response: AIResponse): Record<string, any> {
   if (isUploadAndChatResponse(response)) {
     return {
@@ -207,11 +191,10 @@ class ChatService {
       sessionId: sessionId || null,
     };
 
-    // If a client-provided ID is given, use it when creating the conversation
     if (clientProvidedId) {
       conversationData.id = clientProvidedId;
     } else {
-      conversationData.id = crypto.randomUUID(); //Fallback id is there is no client-provided ID
+      conversationData.id = crypto.randomUUID(); 
     }
 
     const conversation = await prisma.conversation.create({
@@ -244,11 +227,9 @@ class ChatService {
       throw new AppError('Conversation not found', 404);
     }
 
-    // Check cache (only for non-file queries)
     if (!file) {
       const cachedResponse = await cacheService.getAIResponse(message, mode);
       if (cachedResponse) {
-        // Save user message
         const userMessage = await prisma.message.create({
           data: {
             id: crypto.randomUUID(),
@@ -276,7 +257,6 @@ class ChatService {
           data: { lastMessageAt: new Date() },
         });
 
-        // IMPORTANT: Return the assistant message in the expected format
         return {
           message: assistantMessage,
           conversation: {
@@ -290,7 +270,6 @@ class ChatService {
 
     let aiResponse: AIResponse;
 
-    // Handle different scenarios based on mode and file
     if (file && mode === 'AGENTIC') {
       aiResponse = await pythonBackendService.agentUploadAndChat(
         file.buffer,
@@ -350,16 +329,13 @@ class ChatService {
         });
       }
     } else {
-      // Normal chat mode
       aiResponse = await pythonBackendService.chat(message);
     }
 
-    // Cache the response
     if (!file) {
       await cacheService.cacheAIResponse(message, mode, aiResponse);
     }
 
-    // Save user message
     const userMessage = await prisma.message.create({
       data: {
         id: crypto.randomUUID(),
@@ -370,11 +346,9 @@ class ChatService {
       },
     });
 
-    // Extract and validate response text
     const responseText = getResponseText(aiResponse);
     const messageContent = responseText || 'AI response received but content could not be extracted.';
     
-    // Save assistant message
     const assistantMessage = await prisma.message.create({
       data: {
         id: crypto.randomUUID(),
@@ -388,16 +362,13 @@ class ChatService {
       },
     });
 
-    // Update conversation timestamp
     await prisma.conversation.update({
       where: { id: conversationId },
       data: { lastMessageAt: new Date() },
     });
 
-    // Clear cache
     await cacheService.clearUserCache(userId);
 
-    //Return the assistant message
     return {
       message: assistantMessage, 
       conversation: {
@@ -409,7 +380,6 @@ class ChatService {
   }
 
   async getConversations(userId: string) {
-    // Check cache
     const cached = await cacheService.getUserData(`conversations:${userId}`);
     if (cached) return cached;
 
@@ -424,7 +394,6 @@ class ChatService {
       },
     });
 
-    // Cache for 30 minutes
     await cacheService.cacheUserData(`conversations:${userId}`, conversations, 1800);
 
     return conversations;
@@ -466,19 +435,15 @@ class ChatService {
       where: { id: conversationId },
     });
 
-    // Clear cache
     await cacheService.clearUserCache(userId);
   }
 
   async deleteAllConversations(userId: string) {
-    // Delete all conversations for the user
     const result = await prisma.conversation.deleteMany({
       where: {
         userId,
       },
     });
-
-    // Clear cache
     await cacheService.clearUserCache(userId);
 
     return {
@@ -486,7 +451,6 @@ class ChatService {
     };
   }
 
-  // Get conversation info including document
   async getConversationInfo(userId: string, conversationId: string) {
     const conversation = await prisma.conversation.findFirst({
       where: {
@@ -511,11 +475,7 @@ class ChatService {
     return conversation;
   }
 
-  /**
-   * Share or unshare a conversation
-   */
   async shareConversation(userId: string, conversationId: string, share: boolean, req: any) {
-    // Verify conversation exists and belongs to user
     const conversation = await prisma.conversation.findFirst({
       where: {
         id: conversationId,
@@ -528,7 +488,6 @@ class ChatService {
     }
 
     if (share) {
-      // Check if link already exists
       let existingLink = await prisma.sharedLink.findFirst({
         where: {
           userId,
@@ -537,7 +496,6 @@ class ChatService {
       });
 
       if (!existingLink) {
-        // Generate random hash using crypto
         const hashedLink = crypto.randomBytes(8).toString('hex');
         
         existingLink = await prisma.sharedLink.create({
@@ -549,13 +507,11 @@ class ChatService {
         });
       }
 
-      // Update conversation sharing status
       await prisma.conversation.update({
         where: { id: conversationId },
         data: { isShared: true },
       });
 
-      // Update user sharing enabled status
       await prisma.user.update({
         where: { id: userId },
         data: { shareEnabled: true },
@@ -565,13 +521,11 @@ class ChatService {
         link: `${req.protocol}://${req.get('host')}/api/v1/chat/shared/${existingLink.hashedLink}`,
       };
     } else {
-      // Disable sharing
       await prisma.conversation.update({
         where: { id: conversationId },
         data: { isShared: false },
       });
 
-      // Delete the shared link
       await prisma.sharedLink.deleteMany({
         where: {
           userId,
@@ -583,11 +537,8 @@ class ChatService {
     }
   }
 
-  /**
-   * Get shared conversation by hash link
-   */
+
   async getSharedConversation(shareLink: string) {
-    // Find the shared link
     const linkDoc = await prisma.sharedLink.findUnique({
       where: { hashedLink: shareLink },
       include: {
@@ -631,17 +582,14 @@ class ChatService {
       throw new AppError('This conversation is no longer shared', 403);
     }
 
-    // Check if link is expired
     if (linkDoc.expiresAt && linkDoc.expiresAt < new Date()) {
       throw new AppError('Share link has expired', 403);
     }
 
-    // Check view limits
     if (linkDoc.maxViews && linkDoc.viewCount >= linkDoc.maxViews) {
       throw new AppError('Share link view limit exceeded', 403);
     }
 
-    // Increment view count
     await prisma.sharedLink.update({
       where: { id: linkDoc.id },
       data: { viewCount: linkDoc.viewCount + 1 },

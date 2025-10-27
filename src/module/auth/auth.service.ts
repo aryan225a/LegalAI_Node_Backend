@@ -7,7 +7,6 @@ import cacheService from '../../services/cache.service.js';
 
 class AuthService {
   async register(email: string, password: string, name: string) {
-    // Check if user exists
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -18,7 +17,6 @@ class AuthService {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
     const user = await prisma.user.create({
       data: {
         email,
@@ -34,10 +32,8 @@ class AuthService {
       },
     });
 
-    // Generate tokens
     const { accessToken, refreshToken } = this.generateTokens(user.id);
 
-    // Store refresh token
     await this.storeRefreshToken(user.id, refreshToken);
 
     return {
@@ -48,7 +44,7 @@ class AuthService {
   }
 
   async login(email: string, password: string) {
-    // Find user
+
     const user = await prisma.user.findUnique({
       where: { email },
     });
@@ -57,23 +53,19 @@ class AuthService {
       throw new AppError('Invalid credentials', 401);
     }
 
-    // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       throw new AppError('Invalid credentials', 401);
     }
 
-    // Update last login
     await prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
     });
 
-    // Generate tokens
     const { accessToken, refreshToken } = this.generateTokens(user.id);
 
-    // Store refresh token
     await this.storeRefreshToken(user.id, refreshToken);
 
     return {
@@ -90,13 +82,11 @@ class AuthService {
 
   async refreshToken(refreshToken: string) {
     try {
-      // Verify refresh token
       const decoded = jwt.verify(
         refreshToken,
         process.env.JWT_REFRESH_SECRET!
       ) as { userId: string };
 
-      // Check if refresh token exists in DB
       const storedToken = await prisma.refreshToken.findFirst({
         where: {
           token: refreshToken,
@@ -109,17 +99,14 @@ class AuthService {
         throw new AppError('Invalid refresh token', 401);
       }
 
-      // Generate new tokens
       const { accessToken, refreshToken: newRefreshToken } = this.generateTokens(
         decoded.userId
       );
 
-      // Delete old refresh token
       await prisma.refreshToken.delete({
         where: { id: storedToken.id },
       });
 
-      // Store new refresh token
       await this.storeRefreshToken(decoded.userId, newRefreshToken);
 
       return {
@@ -132,7 +119,6 @@ class AuthService {
   }
 
   async logout(userId: string, refreshToken: string) {
-    // Delete refresh token
     await prisma.refreshToken.deleteMany({
       where: {
         userId,
@@ -140,7 +126,6 @@ class AuthService {
       },
     });
 
-    // Clear user cache and persistent rate limit counters so limits reset on logout
     await cacheService.clearUserCache(userId);
     await cacheService.clearUserRateLimits(userId);
   }
@@ -175,16 +160,13 @@ class AuthService {
   }
 
   async handleOAuthCallback(user: any) {
-    // Update last login
     await prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
     });
 
-    // Generate tokens
     const { accessToken, refreshToken } = this.generateTokens(user.id);
 
-    // Store refresh token
     await this.storeRefreshToken(user.id, refreshToken);
 
     return {

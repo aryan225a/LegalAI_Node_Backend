@@ -11,11 +11,6 @@ interface AuthRequestWithFile extends AuthRequest {
 }
 
 class ChatController {
-  /**
-   * Create a new conversation
-   * - NORMAL mode: Simple chat, no session_id or document required
-   * - AGENTIC mode: AI agent with tools, uses session_id, document is optional
-   */
   async createConversation(req: AuthRequest, res: Response, next: NextFunction) {
     try {
         const userId = req.user.id;
@@ -39,7 +34,7 @@ class ChatController {
             documentId, 
             documentName, 
             sessionId,
-            id  // Pass the client-provided ID
+            id 
         );
 
         res.status(201).json({
@@ -52,21 +47,6 @@ class ChatController {
       }
   }
 
-  /**
-   * Send a message in a conversation
-   * - NORMAL mode: Simple chat response
-   * - AGENTIC mode: AI agent with tools, maintains session_id, can include document for context
-   * - File upload: Supported in AGENTIC mode for document analysis
-   * 
-   * Request format:
-   * - Content-Type: multipart/form-data (when sending file)
-   * - Content-Type: application/json (when no file)
-   * 
-   * Body fields:
-   * - message: string (required)
-   * - mode: 'NORMAL' | 'AGENTIC' (required)
-   * - file: File (optional, for AGENTIC mode)
-   */
   async sendMessage(req: AuthRequestWithFile, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;
@@ -226,9 +206,6 @@ class ChatController {
     }
   }
 
-  /**
-   * Share a conversation - creates or manages sharing link
-   */
   async shareConversation(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;
@@ -277,9 +254,6 @@ class ChatController {
     }
   }
 
-  /**
-   * Get shared conversation by secure link (no authentication required)
-   */
   async getSharedConversation(req: AuthRequest | any, res: Response, next: NextFunction) {
     try {
       const { shareLink } = req.params;
