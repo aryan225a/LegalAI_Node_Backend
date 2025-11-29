@@ -4,10 +4,10 @@ import { randomUUID } from "crypto";
 
 const prisma = new PrismaClient();
 async function main() {
-  console.log('🌱 Seeding database...');
+  console.log('Seeding database...');
 
   const hashedPassword = await bcrypt.hash('password123', 10);
-  
+
   const user = await prisma.user.upsert({
     where: { email: 'test@example.com' },
     update: {},

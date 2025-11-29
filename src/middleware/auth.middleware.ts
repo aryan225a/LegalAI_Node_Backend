@@ -1,5 +1,4 @@
-import type { Request } from 'express';
-import type { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/database.js';
 import { logger } from '../utils/logger.js';
@@ -24,14 +23,10 @@ export interface OptionalAuthRequest extends Request {
   };
 }
 
-/*
- * Middleware to authenticate requests using JWT token
- */
-export const authenticate = async ( req: Request, res: Response, next: NextFunction) => {
+export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Extract token from Authorization header
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader) {
       return res.status(401).json({
         success: false,
@@ -39,8 +34,6 @@ export const authenticate = async ( req: Request, res: Response, next: NextFunct
         code: 'NO_TOKEN',
       });
     }
-
-    // Check if token starts with "Bearer "
     if (!authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
@@ -59,7 +52,6 @@ export const authenticate = async ( req: Request, res: Response, next: NextFunct
       });
     }
 
-    // Verify JWT token
     let decoded: any;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET!);
@@ -71,7 +63,7 @@ export const authenticate = async ( req: Request, res: Response, next: NextFunct
           code: 'TOKEN_EXPIRED',
         });
       }
-      
+
       if (error.name === 'JsonWebTokenError') {
         return res.status(401).json({
           success: false,
@@ -83,7 +75,6 @@ export const authenticate = async ( req: Request, res: Response, next: NextFunct
       throw error;
     }
 
-    // Find user in database
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {
@@ -103,10 +94,8 @@ export const authenticate = async ( req: Request, res: Response, next: NextFunct
       });
     }
 
-    // Attach user to request object
     (req as AuthRequest).user = user;
 
-    // Log successful authentication (for debugging)
     if (process.env.NODE_ENV === 'development') {
       logger.debug('User authenticated', {
         userId: user.id,
@@ -127,14 +116,11 @@ export const authenticate = async ( req: Request, res: Response, next: NextFunct
   }
 };
 
-/**
- * Optional authentication middleware
- * Attaches user to request if token is valid, but doesn't fail if missing
- */
-export const optionalAuth = async ( req: OptionalAuthRequest, res: Response, next: NextFunction) => {
+
+export const optionalAuth = async (req: OptionalAuthRequest, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return next();
     }
@@ -147,7 +133,7 @@ export const optionalAuth = async ( req: OptionalAuthRequest, res: Response, nex
 
     try {
       const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
-      
+
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },
         select: {

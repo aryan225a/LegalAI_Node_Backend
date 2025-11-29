@@ -4,7 +4,6 @@ import { AppError } from "../../middleware/error.middleware.js";
 
 class UserService {
   async getUserProfile(userId: string) {
-    // Check cache
     const cached = await cacheService.getUserData(userId);
     if (cached) return cached;
 
@@ -26,7 +25,6 @@ class UserService {
       throw new AppError('User not found', 404);
     }
 
-    // Cache for 1 hour
     await cacheService.cacheUserData(userId, user, 3600);
 
     return user;
@@ -48,7 +46,6 @@ class UserService {
       },
     });
 
-    // Clear cache
     await cacheService.clearUserCache(userId);
 
     return user;
@@ -69,7 +66,6 @@ class UserService {
   }
 
   async deleteUser(userId: string) {
-    // Check if user exists
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -78,18 +74,13 @@ class UserService {
       throw new AppError('User not found', 404);
     }
 
-    // Delete user and related data (using cascade delete or manual cleanup)
     await prisma.$transaction(async (tx) => {
-      // Delete related data first
       await tx.conversation.deleteMany({ where: { userId } });
       await tx.document.deleteMany({ where: { userId } });
       await tx.translation.deleteMany({ where: { userId } });
-      
-      // Delete the user
       await tx.user.delete({ where: { id: userId } });
     });
 
-    // Clear cache
     await cacheService.clearUserCache(userId);
 
     return { message: 'User deleted successfully' };

@@ -134,13 +134,13 @@ class AuthService {
     const accessToken = jwt.sign(
       { userId },
       process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '15m' } as SignOptions
+      { expiresIn: process.env.JWT_EXPIRES_IN || '1d' } as SignOptions
     );
 
     const refreshToken = jwt.sign(
       { userId },
       process.env.JWT_REFRESH_SECRET!,
-      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' } as SignOptions
+      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d' } as SignOptions
     );
 
     return { accessToken, refreshToken };
@@ -148,7 +148,7 @@ class AuthService {
 
   private async storeRefreshToken(userId: string, token: string) {
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+    expiresAt.setDate(expiresAt.getDate() + 30);
 
     await prisma.refreshToken.create({
       data: {

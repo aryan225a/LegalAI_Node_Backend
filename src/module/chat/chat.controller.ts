@@ -5,7 +5,6 @@ import chatService from './chat.service.js';
 import type { Multer } from 'multer';
 import { z } from 'zod';
 
-// Extend AuthRequest to include file property for multer
 interface AuthRequestWithFile extends AuthRequest {
   file?: Express.Multer.File;
 }
@@ -13,52 +12,48 @@ interface AuthRequestWithFile extends AuthRequest {
 class ChatController {
   async createConversation(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-        const userId = req.user.id;
-        const { id, title, mode, documentId, documentName, sessionId } = req.body;
+      const userId = req.user.id;
+      const { id, title, mode, documentId, documentName, sessionId } = req.body;
 
-        // Validation
-        if (!mode || !['NORMAL', 'AGENTIC'].includes(mode)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Mode is required and must be either NORMAL or AGENTIC',
-            });
-          }
-
-        // Use provided title or generate a default one
-        const conversationTitle = title || `${mode} Chat - ${new Date().toLocaleString()}`;
-
-        const conversation = await chatService.createConversation(
-            userId, 
-            conversationTitle, 
-            mode, 
-            documentId, 
-            documentName, 
-            sessionId,
-            id 
-        );
-
-        res.status(201).json({
-            success: true,
-            data: conversation,
+      if (!mode || !['NORMAL', 'AGENTIC'].includes(mode)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mode is required and must be either NORMAL or AGENTIC',
         });
-        }
-        catch (error) {
-            next(error);
       }
+
+      const conversationTitle = title || `${mode} Chat - ${new Date().toLocaleString()}`;
+
+      const conversation = await chatService.createConversation(
+        userId,
+        conversationTitle,
+        mode,
+        documentId,
+        documentName,
+        sessionId,
+        id
+      );
+
+      res.status(201).json({
+        success: true,
+        data: conversation,
+      });
+    }
+    catch (error) {
+      next(error);
+    }
   }
 
   async sendMessage(req: AuthRequestWithFile, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;
       const { conversationId } = req.params;
-      
-      // Handle both JSON and form-data
+
       const message = req.body?.message;
       const mode = req.body?.mode;
       const inputLanguage = req.body?.input_language;
       const outputLanguage = req.body?.output_language;
-      
-      // Validation
+
       if (!conversationId) {
         return res.status(400).json({
           success: false,
@@ -79,7 +74,7 @@ class ChatController {
           message: 'Mode is required and must be either NORMAL or AGENTIC',
         });
       }
-      
+
       const file = req.file
         ? { buffer: req.file.buffer, fileName: req.file.originalname }
         : undefined;
@@ -122,7 +117,7 @@ class ChatController {
     try {
       const userId = req.user!.id;
       const { conversationId } = req.params;
-      
+
       if (!conversationId) {
         return res.status(400).json({
           success: false,
@@ -148,7 +143,7 @@ class ChatController {
     try {
       const userId = req.user!.id;
       const { conversationId } = req.params;
-      
+
       if (!conversationId) {
         return res.status(400).json({
           success: false,
@@ -171,7 +166,7 @@ class ChatController {
     try {
       const userId = req.user!.id;
       const { conversationId } = req.params;
-      
+
       if (!conversationId) {
         return res.status(400).json({
           success: false,
@@ -211,7 +206,7 @@ class ChatController {
       const userId = req.user!.id;
       const { conversationId } = req.params;
 
-      // Validation with zod
+
       const shareSchema = z.object({
         share: z.boolean()
       });

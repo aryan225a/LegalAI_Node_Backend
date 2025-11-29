@@ -17,10 +17,9 @@ class PythonBackendService {
   private client: AxiosInstance;
 
   constructor() {
-    
-    // Hugging Face Spaces Wakeup Time
+
     const timeout = parseInt(process.env.PYTHON_BACKEND_TIMEOUT || '180000'); // 180s default
-    
+
     this.client = axios.create({
       baseURL: process.env.PYTHON_BACKEND_URL,
       timeout: timeout,
@@ -29,7 +28,6 @@ class PythonBackendService {
       },
     });
 
-    // Response interceptor for better error handling
     this.client.interceptors.response.use(
       (response) => response,
       (error) => {
@@ -42,44 +40,34 @@ class PythonBackendService {
     );
   }
 
-  /*
-   * Normal Chat - Uses general knowledge chatbot
-   */
   async chat(prompt: string): Promise<ChatResponse> {
     const request: ChatRequest = {
-      prompt, 
+      prompt,
     };
 
     const response = await this.client.post<ChatResponse>('/api/v1/chat', request);
     return response.data;
   }
 
-  /*
-   * Agentic Chat - Uses AI agent
-   */
   async agentChat(
-      message: string,
-      sessionId?: string,
-      documentId?: string
-    ): Promise<AgentChatResponse> {
-      const request: AgentChatRequest = {
-        message,
-        session_id: sessionId || '',
-        document_id: documentId || '',
-      };
+    message: string,
+    sessionId?: string,
+    documentId?: string
+  ): Promise<AgentChatResponse> {
+    const request: AgentChatRequest = {
+      message,
+      session_id: sessionId || '',
+      document_id: documentId || '',
+    };
 
-      const response = await this.client.post<AgentChatResponse>(
-        '/api/v1/agent/chat',
-        request
-      );
-      return response.data;
-    }
+    const response = await this.client.post<AgentChatResponse>(
+      '/api/v1/agent/chat',
+      request
+    );
+    return response.data;
+  }
 
-  /*
-   * Upload and Chat 
-   * Enhanced to support all Python backend parameters including language detection
-   */
- async agentUploadAndChat(
+  async agentUploadAndChat(
     file: Buffer,
     fileName: string,
     initialMessage: string = 'Please analyze this document',
@@ -110,10 +98,6 @@ class PythonBackendService {
     return response.data;
   }
 
-
-  /*
-   * Detect Language
-   */
   async detectLanguage(text: string): Promise<DetectLanguageResponse> {
     const response = await this.client.post<DetectLanguageResponse>(
       '/api/v1/agent/detect-language',
@@ -122,9 +106,6 @@ class PythonBackendService {
     return response.data;
   }
 
-  /*
-   * Generate Document from Template
-   */
   async generateDocument(
     templateName: string,
     data: Record<string, any>
@@ -141,9 +122,6 @@ class PythonBackendService {
     return response.data;
   }
 
-  /*
-   * Translate Text
-   */
   async translate(
     text: string,
     sourceLang: string = 'en',

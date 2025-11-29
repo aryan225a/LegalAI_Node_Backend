@@ -3,10 +3,10 @@ import pythonBackendService from '../../services/python-backend.service.js';
 import cacheService from '../../services/cache.service.js';
 import { AppError } from '../../middleware/error.middleware.js';
 import crypto from 'crypto';
-import { 
-  AgentChatResponse, 
-  UploadAndChatResponse, 
-  ChatResponse 
+import {
+  AgentChatResponse,
+  UploadAndChatResponse,
+  ChatResponse
 } from '../../types/python-backend.types.js';
 
 type AIResponse = AgentChatResponse | UploadAndChatResponse | ChatResponse;
@@ -22,7 +22,7 @@ function isAgentChatResponse(response: AIResponse): response is AgentChatRespons
 function getResponseText(response: AIResponse): string {
   try {
     let mainResponse: any = '';
-    
+
     if (isUploadAndChatResponse(response)) {
       mainResponse = response.agent_response || '';
     } else if (isAgentChatResponse(response)) {
@@ -30,7 +30,7 @@ function getResponseText(response: AIResponse): string {
     } else {
       mainResponse = response.response || '';
     }
-    
+
     if (!mainResponse || (typeof mainResponse === 'string' && mainResponse.trim() === '')) {
       const metadata = getMetadata(response);
       if (metadata.intermediate_steps && Array.isArray(metadata.intermediate_steps)) {
@@ -40,28 +40,23 @@ function getResponseText(response: AIResponse): string {
         }
       }
     }
-    
-    // Handle different response formats
+
     if (typeof mainResponse === 'string') {
       return mainResponse;
     } else if (typeof mainResponse === 'object' && mainResponse !== null) {
-      // If response is an object, try to extract text content
       if (mainResponse.answer) {
-        // RAG chat response format
         let content = mainResponse.answer;
         if (mainResponse.sources) {
           content += '\n\n**Sources:**\n' + mainResponse.sources;
         }
         return content;
       } else if (mainResponse.response) {
-        // Nested response format
         return typeof mainResponse.response === 'string' ? mainResponse.response : JSON.stringify(mainResponse.response);
       } else {
-        // Fallback: stringify the object
         return JSON.stringify(mainResponse);
       }
     }
-    
+
     return mainResponse?.toString() || '';
   } catch (error) {
     console.error('Error extracting response text:', error);
@@ -93,12 +88,12 @@ function getSimplifiedMetadata(response: AIResponse): Record<string, any> {
 
   const fullMetadata = getMetadata(response);
   const intermediateSteps = fullMetadata.intermediate_steps || [];
-  
+
   const toolsWithDetails = intermediateSteps.map((step: any) => {
     const toolInfo: any = {
       tool: step.tool || 'unknown',
     };
-    
+
     if (step.result) {
       if (typeof step.result === 'object') {
         if (step.result.query_time !== undefined) {
@@ -112,7 +107,7 @@ function getSimplifiedMetadata(response: AIResponse): Record<string, any> {
         }
       }
     }
-    
+
     return toolInfo;
   });
 
@@ -135,12 +130,12 @@ function getSimplifiedMetadata(response: AIResponse): Record<string, any> {
 
   let totalQueryTime = 0;
   let maxTotalChunks = 0;
-  
+
   toolsWithDetails.forEach((tool: any) => {
     if (tool.query_time) totalQueryTime += tool.query_time;
     if (tool.total_chunks) maxTotalChunks = Math.max(maxTotalChunks, tool.total_chunks);
   });
-  
+
   if (totalQueryTime > 0) {
     baseMetadata.total_query_time = Number(totalQueryTime.toFixed(2));
   }
@@ -174,8 +169,8 @@ function getMetadata(response: AIResponse): Record<string, any> {
 
 class ChatService {
   async createConversation(
-    userId: string, 
-    title: string, 
+    userId: string,
+    title: string,
     mode: 'NORMAL' | 'AGENTIC',
     documentId?: string,
     documentName?: string,
@@ -194,7 +189,7 @@ class ChatService {
     if (clientProvidedId) {
       conversationData.id = clientProvidedId;
     } else {
-      conversationData.id = crypto.randomUUID(); 
+      conversationData.id = crypto.randomUUID();
     }
 
     const conversation = await prisma.conversation.create({
@@ -245,7 +240,7 @@ class ChatService {
             conversationId,
             role: 'ASSISTANT',
             content: getResponseText(cachedResponse),
-            metadata: { 
+            metadata: {
               cached: true,
               ...getSimplifiedMetadata(cachedResponse)
             },
@@ -281,18 +276,18 @@ class ChatService {
       );
 
       const updateData: { documentId?: string; documentName?: string; sessionId?: string } = {};
-      
+
       const docId = getDocumentId(aiResponse);
       if (docId) {
         updateData.documentId = docId;
         updateData.documentName = file.fileName;
       }
-      
+
       const newSessionId = getSessionId(aiResponse);
       if (newSessionId) {
         updateData.sessionId = newSessionId;
       }
-      
+
       if (Object.keys(updateData).length > 0) {
         await prisma.conversation.update({
           where: { id: conversationId },
@@ -306,7 +301,7 @@ class ChatService {
         sessionId || undefined,
         conversation.documentId
       );
-      
+
       const newSessionId = getSessionId(aiResponse);
       if (newSessionId && newSessionId !== sessionId) {
         await prisma.conversation.update({
@@ -320,7 +315,7 @@ class ChatService {
         message,
         sessionId || undefined
       );
-      
+
       const newSessionId = getSessionId(aiResponse);
       if (newSessionId && newSessionId !== sessionId) {
         await prisma.conversation.update({
@@ -348,7 +343,7 @@ class ChatService {
 
     const responseText = getResponseText(aiResponse);
     const messageContent = responseText || 'AI response received but content could not be extracted.';
-    
+
     const assistantMessage = await prisma.message.create({
       data: {
         id: crypto.randomUUID(),
@@ -370,7 +365,7 @@ class ChatService {
     await cacheService.clearUserCache(userId);
 
     return {
-      message: assistantMessage, 
+      message: assistantMessage,
       conversation: {
         id: conversationId,
         sessionId: getSessionId(aiResponse),
@@ -497,7 +492,7 @@ class ChatService {
 
       if (!existingLink) {
         const hashedLink = crypto.randomBytes(8).toString('hex');
-        
+
         existingLink = await prisma.sharedLink.create({
           data: {
             hashedLink,

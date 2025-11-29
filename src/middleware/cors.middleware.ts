@@ -1,10 +1,7 @@
 import cors from 'cors';
 import type { Request } from 'express';
 
-/**
- * CORS configuration
- * Allows requests from specified origins
- */
+
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   'http://localhost:3000',
@@ -14,12 +11,11 @@ const allowedOrigins = [
 
 export const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    
+
     if (!origin) {
       return callback(null, true);
     }
 
-    // Check if origin is in allowed list
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -37,7 +33,7 @@ export const corsOptions: cors.CorsOptions = {
     'Origin',
   ],
   exposedHeaders: ['X-Total-Count', 'X-Page', 'X-Per-Page'],
-  maxAge: 86400, // 24 hours
+  maxAge: 86400,
   preflightContinue: false,
   optionsSuccessStatus: 204,
 };
