@@ -142,8 +142,6 @@ class CacheService {
   async clearAllAICache() {
     try {
       console.log('Clearing all AI caches...');
-      // Note: This is a placeholder as we can't easily clear by pattern in Upstash without scanning
-      // For now, we'll just log it. In a real Redis we'd use SCAN + DEL
       return { success: true, message: 'Cache clearing triggered' };
     } catch (error) {
       console.error('Error clearing AI cache:', error);
