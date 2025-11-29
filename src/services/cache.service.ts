@@ -95,21 +95,40 @@ class CacheService {
   }
 
   async cacheTranslation(text: string, sourceLang: string, targetLang: string, translation: string, ttl = 86400) {
-    const hash = this.generateHash({ text, sourceLang, targetLang });
-    await redis.setex(`translation:${hash}`, ttl, translation);
+    try {
+      const hash = this.generateHash({ text, sourceLang, targetLang });
+      await redis.setex(`translation:${hash}`, ttl, translation);
+    } catch (error) {
+      console.error('Error caching translation:', error);
+    }
   }
 
   async getTranslation(text: string, sourceLang: string, targetLang: string) {
-    const hash = this.generateHash({ text, sourceLang, targetLang });
-    return await redis.get(`translation:${hash}`);
+    try {
+      const hash = this.generateHash({ text, sourceLang, targetLang });
+      return await redis.get(`translation:${hash}`);
+    } catch (error) {
+      console.error('Error retrieving translation from cache:', error);
+      return null;
+    }
   }
 
   async invalidate(pattern: string) {
-    await redis.del(pattern);
+    try {
+      await redis.del(pattern);
+    } catch (error) {
+      console.error('Error invalidating cache:', error);
+    }
   }
+
   async clearUserCache(userId: string) {
-    await redis.del(`user:${userId}`);
+    try {
+      await redis.del(`user:${userId}`);
+    } catch (error) {
+      console.error('Error clearing user cache:', error);
+    }
   }
+
   async clearUserRateLimits(userId: string) {
     try {
       const limiterNames = ['message', 'upload', 'api'];
@@ -119,15 +138,19 @@ class CacheService {
       console.error('Error clearing user rate limits:', error);
     }
   }
+
   async clearAllAICache() {
     try {
       console.log('Clearing all AI caches...');
+      // Note: This is a placeholder as we can't easily clear by pattern in Upstash without scanning
+      // For now, we'll just log it. In a real Redis we'd use SCAN + DEL
       return { success: true, message: 'Cache clearing triggered' };
     } catch (error) {
       console.error('Error clearing AI cache:', error);
       return { success: false, message: 'Error clearing cache' };
     }
   }
+
   async flushAll() {
     try {
       await redis.flushdb();
