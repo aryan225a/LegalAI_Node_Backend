@@ -21,7 +21,7 @@ This service is part of a modern microservices architecture. The frontend only c
 ### 🛠️ Tech Stack
 
 * **Framework**: Express.js with TypeScript
-* **Database**: MongoDB with Mongoose (or PostgreSQL with Prisma)
+* **Database**: PostgreSQL with Prisma (NeonDB)
 * **Authentication**: Passport.js with JWT for secure sessions.
 * **API Client**: Axios for server-to-server communication.
 * **Security**: Helmet, Express Rate Limit, CORS
@@ -35,7 +35,7 @@ This service is part of a modern microservices architecture. The frontend only c
 
 * **Node.js** (LTS version)
 * **npm** or **Yarn**
-* **MongoDB** or **PostgreSQL** Database
+* **PostgreSQL** Database
 * A running instance of the **Python AI Backend**.
 
 ### Setup Steps
@@ -62,7 +62,7 @@ npm run dev
 ### Health Check
 * `GET /health` - Server health status
 
-### Authentication Routes (`/api/v1/auth`)
+### Authentication Routes (`/api/auth`)
 
 #### Local Authentication
 * `POST /api/auth/register` - Register a new user
@@ -77,7 +77,7 @@ npm run dev
 * `GET /api/auth/meta` - Initiate Meta/Facebook OAuth login
 * `GET /api/auth/meta/callback` - Meta OAuth callback
 
-### User Routes (`/api/v1/user`) 🔒
+### User Routes (`/api/user`) 🔒
 All user routes require authentication.
 
 * `GET /api/user/profile` - Get user profile
@@ -105,7 +105,7 @@ All routes below require authentication.
   - Body: `{ share: boolean }`
 * `DELETE /api/chat/conversations/:conversationId` - Delete conversation
 
-### Document Routes (`/api/v1/documents`) 🔒
+### Document Routes (`/api/documents`) 🔒
 All document routes require authentication.
 
 * `POST /api/documents` - Generate new document
@@ -114,7 +114,7 @@ All document routes require authentication.
 * `GET /api/documents/:id` - Get specific document
 * `DELETE /api/documents/:id` - Delete document
 
-### Translation Routes (`/api/v1/translation`) 🔒
+### Translation Routes (`/api/translation`) 🔒
 All translation routes require authentication.
 
 * `POST /api/v1/translation/translate` - Translate text
