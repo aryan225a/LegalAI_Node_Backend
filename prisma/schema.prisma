@@ -33,18 +33,14 @@ model User {
   provider      AuthProvider  @default(LOCAL)
   providerId    String?       // OAuth provider user ID
   
-  // Profile
   preferences   Json?         // Store user preferences
   
-  // Sharing
   shareEnabled  Boolean       @default(false) // Enable/disable sharing
   
-  // Timestamps
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   lastLoginAt   DateTime?
   
-  // Relations
   conversations Conversation[]
   documents     Document[]
   translations  Translation[]
@@ -60,18 +56,15 @@ model Conversation {
   title         String
   mode          ChatMode      @default(NORMAL)
   
-  // Document support
   documentId    String?       // Python backend document_id
   documentName  String?
   
   sessionId     String?       // Python backend session_id for continuity
   
-  // Metadata for additional API data
   metadata      Json?         // Store storageUrl, etc.
   
   language      String?
-  
-  // Sharing
+
   isShared      Boolean       @default(false) // Individual chat sharing
   
   createdAt     DateTime      @default(now())
@@ -94,18 +87,14 @@ model Message {
   role            MessageRole
   content         String        @db.Text
   
-  // Metadata
   tokens          Int?          // Token count
   model           String?       // Model used
   metadata        Json?         // Additional data (citations, tool calls, etc.)
   
-  // File attachments
   attachments     String[]      // Array of file URLs/paths
   
-  // Timestamps
   createdAt       DateTime      @default(now())
   
-  // Relations
   conversation    Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   
   @@index([conversationId])
@@ -120,16 +109,13 @@ model Document {
   format        String        // PDF, DOCX, etc.
   fileUrl       String?       // S3/storage URL
   
-  // Generation metadata
   prompt        String?       @db.Text
   generatedBy   String?       // Model/service used
   metadata      Json?
   
-  // Timestamps
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   
-  // Relations
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([userId])
@@ -143,14 +129,11 @@ model Translation {
   translatedText  String        @db.Text
   sourceLang      String
   targetLang      String
-  
-  // Metadata
+
   metadata        Json?
   
-  // Timestamps
   createdAt       DateTime      @default(now())
   
-  // Relations
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([userId])
@@ -168,7 +151,6 @@ model RefreshToken {
   @@index([token])
 }
 
-// Rate limiting (alternative to Redis for simple cases)
 model RateLimit {
   id          String    @id @default(cuid())
   identifier  String    // IP or user ID
@@ -182,22 +164,18 @@ model RateLimit {
   @@index([resetAt])
 }
 
-// Shared links for conversations
 model SharedLink {
   id             String        @id @default(cuid())
   hashedLink     String        @unique // Random hash for secure sharing
   userId         String
   conversationId String?       // Optional: specific conversation
-  
-  // Link configuration
+
   expiresAt      DateTime?     // Optional expiration
   viewCount      Int           @default(0) // Track views
   maxViews       Int?          // Optional view limit
   
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
-  
-  // Relations
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   
