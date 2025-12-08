@@ -18,8 +18,13 @@ const app: Application = express();
 // Trust proxy for Render deployment
 app.set('trust proxy', 1);
 
-app.use(helmet());
 app.use(corsMiddleware);
+app.options('*', corsMiddleware);
+
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}))
+
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
