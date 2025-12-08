@@ -5,8 +5,7 @@ import type { Request } from 'express';
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   'http://localhost:3000',
-
-  'https://legal-ai-five-blue.vercel.app',
+  'https://legalai-six.vercel.app',
 ];
 
 export const corsOptions: cors.CorsOptions = {
