@@ -18,7 +18,7 @@ const app: Application = express();
 app.set('trust proxy', 1);
 
 app.use(corsMiddleware);
-app.options('*', corsMiddleware);
+
 
 
 // Body parsing middleware
