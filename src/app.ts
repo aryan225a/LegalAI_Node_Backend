@@ -1,5 +1,4 @@
 import express, { type Application } from 'express';
-import helmet from 'helmet';
 import compression from 'compression';
 import passport from './config/passport.js';
 import { errorHandler } from './middleware/error.middleware.js';
@@ -20,10 +19,6 @@ app.set('trust proxy', 1);
 
 app.use(corsMiddleware);
 app.options('*', corsMiddleware);
-
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
-}))
 
 
 // Body parsing middleware

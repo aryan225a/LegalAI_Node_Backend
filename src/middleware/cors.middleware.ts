@@ -1,43 +1,44 @@
-import cors from 'cors';
+import type { Request, Response, NextFunction } from 'express';
 
-const allowedOrigins = [
+const rawAllowedOrigins = [
   process.env.FRONTEND_URL,
   'http://localhost:3000',
   'https://legalai-six.vercel.app',
-].filter((o): o is string => !!o);
+].filter(Boolean) as string[];
 
-export const corsOptions: cors.CorsOptions = {
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
+// Normalize (remove trailing slashes)
+const allowedOrigins = new Set(
+  rawAllowedOrigins.map(o => o.replace(/\/$/, ''))
+);
 
+export function corsMiddleware(req: Request, res: Response, next: NextFunction) {
+  const origin = req.headers.origin;
+
+  if (origin) {
     const normalizedOrigin = origin.replace(/\/$/, '');
 
-    if (
-      allowedOrigins
-        .filter(Boolean)
-        .map(o => o.replace(/\/$/, ''))
-        .includes(normalizedOrigin)
-    ) {
-      return callback(null, true);
+    if (allowedOrigins.has(normalizedOrigin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Vary', 'Origin');
+
+      res.header('Access-Control-Allow-Credentials', 'true');
+
+      res.header(
+        'Access-Control-Allow-Methods',
+        'GET,POST,PUT,DELETE,PATCH,OPTIONS'
+      );
+
+      res.header(
+        'Access-Control-Allow-Headers',
+        'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+      );
     }
+  }
 
-    console.warn(`CORS blocked origin: ${origin}`);
-    return callback(null, false);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Requested-With',
-    'Accept',
-    'Origin',
-  ],
-  exposedHeaders: ['X-Total-Count', 'X-Page', 'X-Per-Page'],
-  maxAge: 86400,
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
-};
+  // Handle preflight here
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
 
-export const corsMiddleware = cors(corsOptions);
-
+  return next();
+}
