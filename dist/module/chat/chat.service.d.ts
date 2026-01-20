@@ -13,6 +13,8 @@ declare class ChatService {
         language: string | null;
         isShared: boolean;
         lastMessageAt: Date;
+        summary: string | null;
+        summaryUpdatedAt: Date | null;
     }>;
     sendMessage(userId: string, conversationId: string, message: string, mode: 'NORMAL' | 'AGENTIC', file?: {
         buffer: Buffer;
@@ -62,6 +64,8 @@ declare class ChatService {
         language: string | null;
         isShared: boolean;
         lastMessageAt: Date;
+        summary: string | null;
+        summaryUpdatedAt: Date | null;
     }>;
     deleteConversation(userId: string, conversationId: string): Promise<void>;
     deleteAllConversations(userId: string): Promise<{

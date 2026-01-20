@@ -210,7 +210,12 @@ class ChatService {
   ) {
     const conversation = await prisma.conversation.findFirst({
       where: { id: conversationId, userId },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        summary: true,
+        sessionId: true,
+        documentId: true,
         messages: {
           orderBy: { createdAt: 'asc' },
           take: 20,
@@ -362,11 +367,11 @@ class ChatService {
       },
     });
 
-    if (mode === 'NORMAL' && aiResponse.updated_summary) {
+    if (mode === 'NORMAL' && (aiResponse as ChatResponse).updated_summary) {
       await prisma.conversation.update({
         where: { id: conversationId },
         data: {
-          summary: aiResponse.updated_summary,
+          summary: (aiResponse as ChatResponse).updated_summary,
           summaryUpdatedAt: new Date()
         }
       });
