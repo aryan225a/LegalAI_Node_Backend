@@ -173,7 +173,12 @@ class ChatService {
     async sendMessage(userId, conversationId, message, mode, file, inputLanguage, outputLanguage) {
         const conversation = await prisma.conversation.findFirst({
             where: { id: conversationId, userId },
-            include: {
+            select: {
+                id: true,
+                userId: true,
+                summary: true,
+                sessionId: true,
+                documentId: true,
                 messages: {
                     orderBy: { createdAt: 'asc' },
                     take: 20,
@@ -268,7 +273,7 @@ class ChatService {
                 role: msg.role.toLowerCase(), // Convert USER/ASSISTANT to user/assistant
                 content: msg.content
             }));
-            aiResponse = await pythonBackendService.chat(message, history);
+            aiResponse = await pythonBackendService.chat(message, history, conversation.summary || null);
         }
         if (!file) {
             await cacheService.cacheAIResponse(message, mode, aiResponse);
@@ -296,6 +301,15 @@ class ChatService {
                 },
             },
         });
+        if (mode === 'NORMAL' && aiResponse.updated_summary) {
+            await prisma.conversation.update({
+                where: { id: conversationId },
+                data: {
+                    summary: aiResponse.updated_summary,
+                    summaryUpdatedAt: new Date()
+                }
+            });
+        }
         await prisma.conversation.update({
             where: { id: conversationId },
             data: { lastMessageAt: new Date() },

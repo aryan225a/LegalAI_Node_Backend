@@ -38,9 +38,11 @@ export interface ChatRequest {
         role: string;
         content: string;
     }>;
+    summary?: string | null;
 }
 export interface ChatResponse {
     response: string;
+    updated_summary?: string;
 }
 export interface TranslateRequest {
     text: string;

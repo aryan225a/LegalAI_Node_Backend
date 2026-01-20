@@ -46,6 +46,7 @@ export interface ChatRequest {
 
 export interface ChatResponse {
   response: string;
+  updated_summary?: string;
 }
 
 // Translation Types
