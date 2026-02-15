@@ -71,7 +71,6 @@ class AuthController {
       const user = req.user;
       const result = await authService.handleOAuthCallback(user);
 
-      // Redirect to frontend with tokens
       const frontendUrl = process.env.FRONTEND_URL;
       res.redirect(
         `${frontendUrl}/auth/callback?token=${result.accessToken}&refreshToken=${result.refreshToken}`
@@ -86,7 +85,6 @@ class AuthController {
       const user = req.user;
       const result = await authService.handleOAuthCallback(user);
 
-      // Redirect to frontend with tokens
       const frontendUrl = process.env.FRONTEND_URL;
       res.redirect(
         `${frontendUrl}/auth/callback?token=${result.accessToken}&refreshToken=${result.refreshToken}`

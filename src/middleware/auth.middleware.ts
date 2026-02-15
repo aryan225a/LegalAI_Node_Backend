@@ -34,6 +34,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         code: 'NO_TOKEN',
       });
     }
+
     if (!authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
@@ -113,47 +114,5 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       message: 'Authentication failed',
       code: 'AUTH_ERROR',
     });
-  }
-};
-
-
-export const optionalAuth = async (req: OptionalAuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return next();
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-
-    if (!token) {
-      return next();
-    }
-
-    try {
-      const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
-
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.userId },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          avatar: true,
-          provider: true,
-        },
-      });
-
-      if (user) {
-        req.user = user;
-      }
-    } catch (error) {
-      // Silently fail for optional auth
-    }
-
-    next();
-  } catch (error) {
-    next();
   }
 };

@@ -34,7 +34,6 @@ export function corsMiddleware(req: Request, res: Response, next: NextFunction) 
     }
   }
 
-  // Handle preflight here
   if (req.method === 'OPTIONS') {
     return res.sendStatus(204);
   }

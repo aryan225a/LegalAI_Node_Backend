@@ -17,7 +17,6 @@ class PythonBackendService {
   private client: AxiosInstance;
 
   constructor() {
-
     const timeout = parseInt(process.env.PYTHON_BACKEND_TIMEOUT || '180000'); // 180s default
 
     this.client = axios.create({
@@ -40,7 +39,10 @@ class PythonBackendService {
     );
   }
 
-  async chat(prompt: string, history: Array<{ role: string; content: string }> = [], summary: string | null = null): Promise<ChatResponse> {
+  async chat(prompt: string, 
+    history: Array<{ role: string; content: string }> = [], 
+    summary: string | null = null
+  ): Promise<ChatResponse> {
     const request: ChatRequest = {
       prompt,
       history,
@@ -118,7 +120,7 @@ class PythonBackendService {
     };
 
     const response = await this.client.post<DocGenResponse>(
-      '/api/v1/generate-document', // CORRECT: with hyphen
+      '/api/v1/generate-document', 
       request
     );
     return response.data;

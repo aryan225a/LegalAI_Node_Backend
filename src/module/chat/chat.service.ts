@@ -168,7 +168,7 @@ function getMetadata(response: AIResponse): Record<string, any> {
 }
 
 class ChatService {
-  async createConversation(
+  async createConversation (
     userId: string,
     title: string,
     mode: 'NORMAL' | 'AGENTIC',
