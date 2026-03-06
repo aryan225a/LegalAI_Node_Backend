@@ -1,5 +1,6 @@
 const rawAllowedOrigins = [
-    process.env.FRONTEND_URL
+    process.env.FRONTEND_URL,
+    'http://localhost:3000'
 ].filter(Boolean);
 const allowedOrigins = new Set(rawAllowedOrigins.map(o => o.replace(/\/$/, '')));
 export function corsMiddleware(req, res, next) {

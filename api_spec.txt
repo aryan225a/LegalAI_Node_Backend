@@ -2,8 +2,8 @@
   "openapi": "3.0.0",
   "info": {
     "title": "LegalAI Backend API",
-    "version": "1.1.0",
-    "description": "API specification for the LegalAI backend service. Version 1.1.0 adds conversation sharing features."
+    "version": "1.2.0",
+    "description": "API specification for the LegalAI backend service. Version 1.2.0 adds lawyer and law firm authentication endpoints."
   },
   "servers": [
     {
@@ -1215,6 +1215,692 @@
           }
         }
       }
+    },
+    "/lawyer/auth/register": {
+      "post": {
+        "tags": ["Lawyer Auth"],
+        "summary": "Register a new lawyer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "format": "password" },
+                  "name": { "type": "string" },
+                  "phone": { "type": "string" },
+                  "barNumber": { "type": "string" },
+                  "barCouncilState": { "type": "string" },
+                  "practiceAreas": { "type": "array", "items": { "type": "string" } },
+                  "yearsOfExperience": { "type": "integer" }
+                },
+                "required": ["email", "password", "name", "phone", "barNumber", "barCouncilState"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Lawyer registered successfully. OTP sent to email for verification.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "lawyerId": { "type": "string" },
+                        "email": { "type": "string" },
+                        "name": { "type": "string" },
+                        "verificationStatus": { "type": "string" },
+                        "barCouncilState": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": { "description": "Email already in use" }
+        }
+      }
+    },
+    "/lawyer/auth/verify-email": {
+      "post": {
+        "tags": ["Lawyer Auth"],
+        "summary": "Verify lawyer email with OTP",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lawyerId": { "type": "string" },
+                  "otp": { "type": "string" }
+                },
+                "required": ["lawyerId", "otp"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Email verified successfully" },
+          "400": { "description": "Invalid or expired OTP" }
+        }
+      }
+    },
+    "/lawyer/auth/login": {
+      "post": {
+        "tags": ["Lawyer Auth"],
+        "summary": "Lawyer login step 1 — returns a 2FA temporary token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "format": "password" }
+                },
+                "required": ["email", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP sent to email. Proceed to /login/verify-2fa.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "twoFactorToken": { "type": "string", "description": "Temporary token to be passed to verify-2fa" },
+                        "method": { "type": "string", "example": "EMAIL" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Invalid credentials" },
+          "403": { "description": "Account locked" }
+        }
+      }
+    },
+    "/lawyer/auth/login/verify-2fa": {
+      "post": {
+        "tags": ["Lawyer Auth"],
+        "summary": "Lawyer login step 2 — verify OTP and receive tokens",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "twoFactorToken": { "type": "string" },
+                  "otp": { "type": "string" }
+                },
+                "required": ["twoFactorToken", "otp"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "accessToken": { "type": "string" },
+                        "refreshToken": { "type": "string" },
+                        "lawyer": { "$ref": "#/components/schemas/LawyerUser" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid or expired OTP" },
+          "401": { "description": "Invalid or expired 2FA token" }
+        }
+      }
+    },
+    "/lawyer/auth/google/firebase": {
+      "post": {
+        "tags": ["Lawyer Auth"],
+        "summary": "Lawyer login/register via Google (Firebase ID token)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "idToken": { "type": "string", "description": "Firebase ID token obtained from Google sign-in" }
+                },
+                "required": ["idToken"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "accessToken": { "type": "string" },
+                        "refreshToken": { "type": "string" },
+                        "lawyer": { "$ref": "#/components/schemas/LawyerUser" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lawyer/auth/refresh": {
+      "post": {
+        "tags": ["Lawyer Auth"],
+        "summary": "Refresh lawyer access token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": { "type": "string" }
+                },
+                "required": ["refreshToken"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token refreshed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "accessToken": { "type": "string" },
+                        "refreshToken": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Invalid or expired refresh token" }
+        }
+      }
+    },
+    "/lawyer/auth/logout": {
+      "post": {
+        "tags": ["Lawyer Auth"],
+        "summary": "Logout a lawyer",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": { "type": "string" }
+                },
+                "required": ["refreshToken"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Logged out successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lawyer/auth/forgot-password": {
+      "post": {
+        "tags": ["Lawyer Auth"],
+        "summary": "Request a password reset OTP for a lawyer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" }
+                },
+                "required": ["email"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Password reset OTP sent to email if account exists" }
+        }
+      }
+    },
+    "/lawyer/auth/reset-password": {
+      "post": {
+        "tags": ["Lawyer Auth"],
+        "summary": "Reset lawyer password using OTP",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "otp": { "type": "string" },
+                  "newPassword": { "type": "string", "format": "password" }
+                },
+                "required": ["email", "otp", "newPassword"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Password reset successfully" },
+          "400": { "description": "Invalid or expired OTP" }
+        }
+      }
+    },
+    "/lawyer/auth/me": {
+      "get": {
+        "tags": ["Lawyer Auth"],
+        "summary": "Get authenticated lawyer's profile",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Lawyer profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/LawyerUser" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/firm/auth/register": {
+      "post": {
+        "tags": ["Firm Auth"],
+        "summary": "Register a new law firm",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "format": "password" },
+                  "name": { "type": "string", "description": "Contact person's name" },
+                  "firmName": { "type": "string" },
+                  "phone": { "type": "string" },
+                  "registrationNumber": { "type": "string" },
+                  "gstNumber": { "type": "string" },
+                  "city": { "type": "string" },
+                  "state": { "type": "string" },
+                  "address": { "type": "string" }
+                },
+                "required": ["email", "password", "name", "firmName", "phone", "registrationNumber", "city", "state"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Firm registered successfully. OTP sent to email for verification.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "firmId": { "type": "string" },
+                        "email": { "type": "string" },
+                        "firmName": { "type": "string" },
+                        "verificationStatus": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": { "description": "Email already in use" }
+        }
+      }
+    },
+    "/firm/auth/verify-email": {
+      "post": {
+        "tags": ["Firm Auth"],
+        "summary": "Verify firm email with OTP",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "firmId": { "type": "string" },
+                  "otp": { "type": "string" }
+                },
+                "required": ["firmId", "otp"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Email verified successfully" },
+          "400": { "description": "Invalid or expired OTP" }
+        }
+      }
+    },
+    "/firm/auth/login": {
+      "post": {
+        "tags": ["Firm Auth"],
+        "summary": "Firm login step 1 — returns a 2FA temporary token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "format": "password" }
+                },
+                "required": ["email", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP sent to email. Proceed to /login/verify-2fa.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "twoFactorToken": { "type": "string", "description": "Temporary token to be passed to verify-2fa" },
+                        "method": { "type": "string", "example": "EMAIL" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Invalid credentials" },
+          "403": { "description": "Account locked" }
+        }
+      }
+    },
+    "/firm/auth/login/verify-2fa": {
+      "post": {
+        "tags": ["Firm Auth"],
+        "summary": "Firm login step 2 — verify OTP and receive tokens",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "twoFactorToken": { "type": "string" },
+                  "otp": { "type": "string" }
+                },
+                "required": ["twoFactorToken", "otp"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "accessToken": { "type": "string" },
+                        "refreshToken": { "type": "string" },
+                        "firm": { "$ref": "#/components/schemas/FirmUser" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid or expired OTP" },
+          "401": { "description": "Invalid or expired 2FA token" }
+        }
+      }
+    },
+    "/firm/auth/refresh": {
+      "post": {
+        "tags": ["Firm Auth"],
+        "summary": "Refresh firm access token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": { "type": "string" }
+                },
+                "required": ["refreshToken"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token refreshed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "accessToken": { "type": "string" },
+                        "refreshToken": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Invalid or expired refresh token" }
+        }
+      }
+    },
+    "/firm/auth/logout": {
+      "post": {
+        "tags": ["Firm Auth"],
+        "summary": "Logout a firm",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": { "type": "string" }
+                },
+                "required": ["refreshToken"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Logged out successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/firm/auth/forgot-password": {
+      "post": {
+        "tags": ["Firm Auth"],
+        "summary": "Request a password reset OTP for a firm",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" }
+                },
+                "required": ["email"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Password reset OTP sent to email if account exists" }
+        }
+      }
+    },
+    "/firm/auth/reset-password": {
+      "post": {
+        "tags": ["Firm Auth"],
+        "summary": "Reset firm password using OTP",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "otp": { "type": "string" },
+                  "newPassword": { "type": "string", "format": "password" }
+                },
+                "required": ["email", "otp", "newPassword"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Password reset successfully" },
+          "400": { "description": "Invalid or expired OTP" }
+        }
+      }
+    },
+    "/firm/auth/me": {
+      "get": {
+        "tags": ["Firm Auth"],
+        "summary": "Get authenticated firm's profile",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Firm profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/FirmUser" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1450,6 +2136,59 @@
             "type": "string",
             "format": "date-time"
           }
+        }
+      },
+      "LawyerUser": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "name": { "type": "string" },
+          "provider": { "type": "string", "enum": ["LOCAL", "GOOGLE", "META"], "default": "LOCAL" },
+          "emailVerified": { "type": "boolean", "default": false },
+          "phoneVerified": { "type": "boolean", "default": false },
+          "barCouncilState": { "type": "string" },
+          "practiceAreas": { "type": "array", "items": { "type": "string" } },
+          "yearsOfExperience": { "type": "integer", "nullable": true },
+          "barNumberFormatValid": { "type": "boolean", "default": false },
+          "verificationStatus": {
+            "type": "string",
+            "enum": ["PENDING", "AUTO_VERIFIED", "FORMAT_FAILED", "MANUALLY_VERIFIED", "REJECTED"],
+            "default": "PENDING"
+          },
+          "verifiedAt": { "type": "string", "format": "date-time", "nullable": true },
+          "isLocked": { "type": "boolean", "default": false },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "lastLoginAt": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "FirmUser": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "name": { "type": "string", "description": "Contact person's name" },
+          "firmName": { "type": "string" },
+          "city": { "type": "string" },
+          "state": { "type": "string" },
+          "address": { "type": "string", "nullable": true },
+          "domain": { "type": "string", "nullable": true },
+          "domainVerified": { "type": "boolean", "default": false },
+          "emailVerified": { "type": "boolean", "default": false },
+          "phoneVerified": { "type": "boolean", "default": false },
+          "registrationFormatValid": { "type": "boolean", "default": false },
+          "verificationStatus": {
+            "type": "string",
+            "enum": ["PENDING", "AUTO_VERIFIED", "FORMAT_FAILED", "MANUALLY_VERIFIED", "REJECTED"],
+            "default": "PENDING"
+          },
+          "verifiedAt": { "type": "string", "format": "date-time", "nullable": true },
+          "isLocked": { "type": "boolean", "default": false },
+          "knownIpAddresses": { "type": "array", "items": { "type": "string" } },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "lastLoginAt": { "type": "string", "format": "date-time", "nullable": true }
         }
       }
     },
