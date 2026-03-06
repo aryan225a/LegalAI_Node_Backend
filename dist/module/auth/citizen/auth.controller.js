@@ -1,6 +1,7 @@
 import authService from './auth.service.js';
-import prisma from '../../config/database.js';
-import { AppError } from '../../middleware/error.middleware.js';
+import firebaseAuthService from '../../../services/firebase-auth.service.js';
+import prisma from '../../../config/database.js';
+import { AppError } from '../../../middleware/error.middleware.js';
 class AuthController {
     async register(req, res, next) {
         try {
@@ -55,28 +56,6 @@ class AuthController {
             next(error);
         }
     }
-    async googleCallback(req, res, next) {
-        try {
-            const user = req.user;
-            const result = await authService.handleOAuthCallback(user);
-            const frontendUrl = process.env.FRONTEND_URL;
-            res.redirect(`${frontendUrl}/auth/callback?token=${result.accessToken}&refreshToken=${result.refreshToken}`);
-        }
-        catch (error) {
-            next(error);
-        }
-    }
-    async metaCallback(req, res, next) {
-        try {
-            const user = req.user;
-            const result = await authService.handleOAuthCallback(user);
-            const frontendUrl = process.env.FRONTEND_URL;
-            res.redirect(`${frontendUrl}/auth/callback?token=${result.accessToken}&refreshToken=${result.refreshToken}`);
-        }
-        catch (error) {
-            next(error);
-        }
-    }
     async getMe(req, res, next) {
         try {
             const userId = req.user.id;
@@ -96,6 +75,19 @@ class AuthController {
                 success: true,
                 data: user,
             });
+        }
+        catch (error) {
+            next(error);
+        }
+    }
+    async googleFirebase(req, res, next) {
+        try {
+            const { idToken } = req.body;
+            if (!idToken || typeof idToken !== 'string') {
+                throw new AppError('idToken is required', 400, 'MISSING_ID_TOKEN');
+            }
+            const result = await firebaseAuthService.citizenGoogleLogin(idToken);
+            res.status(200).json({ success: true, data: result });
         }
         catch (error) {
             next(error);

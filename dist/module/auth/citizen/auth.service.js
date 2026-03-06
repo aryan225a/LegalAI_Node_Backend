@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import prisma from '../../config/database.js';
-import { AppError } from '../../middleware/error.middleware.js';
-import cacheService from '../../services/cache.service.js';
+import prisma from '../../../config/database.js';
+import { AppError } from '../../../middleware/error.middleware.js';
+import cacheService from '../../../services/cache.service.js';
+import { generateCitizenTokens, verifyRefreshToken } from '../../../utils/jwt.utils.js';
 class AuthService {
     async register(email, password, name) {
         const existingUser = await prisma.user.findUnique({
@@ -26,7 +26,7 @@ class AuthService {
                 avatar: true,
             },
         });
-        const { accessToken, refreshToken } = this.generateTokens(user.id);
+        const { accessToken, refreshToken } = generateCitizenTokens(user.id);
         await this.storeRefreshToken(user.id, refreshToken);
         return {
             user,
@@ -49,7 +49,7 @@ class AuthService {
             where: { id: user.id },
             data: { lastLoginAt: new Date() },
         });
-        const { accessToken, refreshToken } = this.generateTokens(user.id);
+        const { accessToken, refreshToken } = generateCitizenTokens(user.id);
         await this.storeRefreshToken(user.id, refreshToken);
         return {
             user: {
@@ -63,31 +63,29 @@ class AuthService {
         };
     }
     async refreshToken(refreshToken) {
-        try {
-            const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-            const storedToken = await prisma.refreshToken.findFirst({
-                where: {
-                    token: refreshToken,
-                    userId: decoded.userId,
-                    expiresAt: { gte: new Date() },
-                },
-            });
-            if (!storedToken) {
-                throw new AppError('Invalid refresh token', 401);
-            }
-            const { accessToken, refreshToken: newRefreshToken } = this.generateTokens(decoded.userId);
-            await prisma.refreshToken.delete({
-                where: { id: storedToken.id },
-            });
-            await this.storeRefreshToken(decoded.userId, newRefreshToken);
-            return {
-                accessToken,
-                refreshToken: newRefreshToken,
-            };
+        const decoded = verifyRefreshToken(refreshToken);
+        if (decoded.userType !== 'CITIZEN') {
+            throw new AppError('Invalid refresh token for citizen account', 401);
         }
-        catch (error) {
+        const storedToken = await prisma.refreshToken.findFirst({
+            where: {
+                token: refreshToken,
+                userId: decoded.sub,
+                expiresAt: { gte: new Date() },
+            },
+        });
+        if (!storedToken) {
             throw new AppError('Invalid refresh token', 401);
         }
+        const { accessToken, refreshToken: newRefreshToken } = generateCitizenTokens(decoded.sub);
+        await prisma.refreshToken.delete({
+            where: { id: storedToken.id },
+        });
+        await this.storeRefreshToken(decoded.sub, newRefreshToken);
+        return {
+            accessToken,
+            refreshToken: newRefreshToken,
+        };
     }
     async logout(userId, refreshToken) {
         await prisma.refreshToken.deleteMany({
@@ -99,11 +97,6 @@ class AuthService {
         await cacheService.clearUserCache(userId);
         await cacheService.clearUserRateLimits(userId);
     }
-    generateTokens(userId) {
-        const accessToken = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '1d' });
-        const refreshToken = jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET, { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d' });
-        return { accessToken, refreshToken };
-    }
     async storeRefreshToken(userId, token) {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 30);
@@ -114,24 +107,6 @@ class AuthService {
                 expiresAt,
             },
         });
-    }
-    async handleOAuthCallback(user) {
-        await prisma.user.update({
-            where: { id: user.id },
-            data: { lastLoginAt: new Date() },
-        });
-        const { accessToken, refreshToken } = this.generateTokens(user.id);
-        await this.storeRefreshToken(user.id, refreshToken);
-        return {
-            user: {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                avatar: user.avatar,
-            },
-            accessToken,
-            refreshToken,
-        };
     }
 }
 export default new AuthService();

@@ -24,18 +24,7 @@ declare class AuthService {
         refreshToken: string;
     }>;
     logout(userId: string, refreshToken: string): Promise<void>;
-    private generateTokens;
     private storeRefreshToken;
-    handleOAuthCallback(user: any): Promise<{
-        user: {
-            id: any;
-            email: any;
-            name: any;
-            avatar: any;
-        };
-        accessToken: string;
-        refreshToken: string;
-    }>;
 }
 declare const _default: AuthService;
 export default _default;
