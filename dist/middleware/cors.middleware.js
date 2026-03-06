@@ -1,6 +1,7 @@
 const rawAllowedOrigins = [
     process.env.FRONTEND_URL,
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'https://www.legalai.software'
 ].filter(Boolean);
 const allowedOrigins = new Set(rawAllowedOrigins.map(o => o.replace(/\/$/, '')));
 export function corsMiddleware(req, res, next) {

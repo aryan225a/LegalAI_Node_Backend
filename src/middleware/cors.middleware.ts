@@ -2,7 +2,8 @@ import type { Request, Response, NextFunction } from 'express';
 
 const rawAllowedOrigins = [
   process.env.FRONTEND_URL,
-  'http://localhost:3000'
+  'http://localhost:3000',
+  'https://www.legalai.software'
 ].filter(Boolean) as string[];
 
 const allowedOrigins = new Set(
