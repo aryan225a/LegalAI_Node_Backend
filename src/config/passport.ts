@@ -1,34 +1,26 @@
 import passport from 'passport';
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
-import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import { Strategy as FacebookStrategy } from 'passport-facebook';
 import prisma from './database.js';
 
-// JWT Strategy
+const JWT_SECRET = process.env.JWT_SECRET!;
+
 passport.use(
+  'jwt-citizen',
   new JwtStrategy(
     {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: process.env.JWT_SECRET!,
+      secretOrKey: JWT_SECRET,
     },
     async (payload, done) => {
       try {
+        if (payload.userType !== 'CITIZEN') return done(null, false);
+
         const user = await prisma.user.findUnique({
-          where: { id: payload.userId },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            avatar: true,
-            provider: true,
-          },
+          where: { id: payload.sub },
+          select: { id: true, email: true, name: true, avatar: true, provider: true },
         });
 
-        if (!user) {
-          return done(null, false);
-        }
-
-        return done(null, user);
+        return user ? done(null, user) : done(null, false);
       } catch (error) {
         return done(error, false);
       }
@@ -36,92 +28,60 @@ passport.use(
   )
 );
 
-// Google OAuth Strategy
 passport.use(
-  new GoogleStrategy(
+  'jwt-lawyer',
+  new JwtStrategy(
     {
-      clientID: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      callbackURL: process.env.GOOGLE_CALLBACK_URL!,
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      secretOrKey: JWT_SECRET,
     },
-    async (accessToken, refreshToken, profile, done) => {
+    async (payload, done) => {
       try {
-        const email = profile.emails?.[0]?.value;
-        let user = await prisma.user.findFirst({
-          where: {
-            OR: [
-              { providerId: profile.id, provider: 'GOOGLE' },
-              ...(email ? [{ email }] : []),
-            ],
+        if (payload.userType !== 'LAWYER') return done(null, false);
+        if (!payload.twoFactorVerified) return done(null, false);
+
+        const lawyer = await prisma.lawyerUser.findUnique({
+          where: { id: payload.sub },
+          select: {
+            id: true, email: true, name: true,
+            verificationStatus: true, isLocked: true,
           },
         });
 
-        if (!user) {
-          user = await prisma.user.create({
-            data: {
-              email: profile.emails?.[0]?.value || '',
-              name: profile.displayName,
-              avatar: profile.photos?.[0]?.value || null,
-              provider: 'GOOGLE',
-              providerId: profile.id,
-            },
-          });
-        } else if (!user.providerId) {
-          // Link existing local account with Google
-          user = await prisma.user.update({
-            where: { id: user.id },
-            data: {
-              provider: 'GOOGLE',
-              providerId: profile.id,
-              avatar: profile.photos?.[0]?.value || null,
-            },
-          });
-        }
-
-        return done(null, user);
+        if (!lawyer || lawyer.isLocked) return done(null, false);
+        return done(null, { ...lawyer, userType: 'LAWYER' });
       } catch (error) {
-        return done(error as Error, undefined);
+        return done(error, false);
       }
     }
   )
 );
 
-// Facebook OAuth Strategy
+
 passport.use(
-  new FacebookStrategy(
+  'jwt-firm',
+  new JwtStrategy(
     {
-      clientID: process.env.META_APP_ID!,
-      clientSecret: process.env.META_APP_SECRET!,
-      callbackURL: process.env.META_CALLBACK_URL!,
-      profileFields: ['id', 'emails', 'name', 'picture'],
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      secretOrKey: JWT_SECRET,
     },
-    async (accessToken, refreshToken, profile, done) => {
+    async (payload, done) => {
       try {
-        const email = profile.emails?.[0]?.value;
-        let user = await prisma.user.findFirst({
-          where: {
-            OR: [
-              { providerId: profile.id, provider: 'META' },
-              ...(email ? [{ email }] : []),
-            ],
+        if (payload.userType !== 'FIRM_ADMIN') return done(null, false);
+        if (!payload.twoFactorVerified) return done(null, false);
+
+        const firm = await prisma.firmUser.findUnique({
+          where: { id: payload.sub },
+          select: {
+            id: true, email: true, name: true, firmName: true,
+            verificationStatus: true, isLocked: true,
           },
         });
 
-        if (!user) {
-          user = await prisma.user.create({
-            data: {
-              email: profile.emails?.[0]?.value || '',
-              name: `${profile.name?.givenName} ${profile.name?.familyName}`,
-              avatar: profile.photos?.[0]?.value || null,
-              provider: 'META',
-              providerId: profile.id,
-            },
-          });
-        }
-
-        return done(null, user);
+        if (!firm || firm.isLocked) return done(null, false);
+        return done(null, { ...firm, userType: 'FIRM_ADMIN' });
       } catch (error) {
-        return done(error as Error, undefined);
+        return done(error, false);
       }
     }
   )

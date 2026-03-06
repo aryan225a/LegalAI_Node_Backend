@@ -1,8 +1,9 @@
 import type { Request, Response, NextFunction } from 'express';
 import authService from './auth.service.js';
-import type { AuthRequest } from '../../middleware/auth.middleware.js';
-import prisma from '../../config/database.js';
-import { AppError } from '../../middleware/error.middleware.js';
+import firebaseAuthService from '../../../services/firebase-auth.service.js';
+import type { AuthRequest } from '../../../middleware/auth.middleware.js';
+import prisma from '../../../config/database.js';
+import { AppError } from '../../../middleware/error.middleware.js';
 
 class AuthController {
   async register(req: Request, res: Response, next: NextFunction) {
@@ -66,34 +67,6 @@ class AuthController {
     }
   }
 
-  async googleCallback(req: Request, res: Response, next: NextFunction) {
-    try {
-      const user = req.user;
-      const result = await authService.handleOAuthCallback(user);
-
-      const frontendUrl = process.env.FRONTEND_URL;
-      res.redirect(
-        `${frontendUrl}/auth/callback?token=${result.accessToken}&refreshToken=${result.refreshToken}`
-      );
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async metaCallback(req: Request, res: Response, next: NextFunction) {
-    try {
-      const user = req.user;
-      const result = await authService.handleOAuthCallback(user);
-
-      const frontendUrl = process.env.FRONTEND_URL;
-      res.redirect(
-        `${frontendUrl}/auth/callback?token=${result.accessToken}&refreshToken=${result.refreshToken}`
-      );
-    } catch (error) {
-      next(error);
-    }
-  }
-
   async getMe(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;
@@ -120,6 +93,20 @@ class AuthController {
       next(error);
     }
   }
+
+  async googleFirebase(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { idToken } = req.body;
+
+      if (!idToken || typeof idToken !== 'string') {
+        throw new AppError('idToken is required', 400, 'MISSING_ID_TOKEN');
+      }
+
+      const result = await firebaseAuthService.citizenGoogleLogin(idToken);
+      res.status(200).json({ success: true, data: result });
+    } catch (error) { next(error); }
+  }
+
 }
 
 export default new AuthController();

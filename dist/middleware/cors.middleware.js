@@ -1,7 +1,5 @@
 const rawAllowedOrigins = [
-    process.env.FRONTEND_URL,
-    'http://localhost:3000',
-    'https://www.legalai.software'
+    process.env.FRONTEND_URL
 ].filter(Boolean);
 const allowedOrigins = new Set(rawAllowedOrigins.map(o => o.replace(/\/$/, '')));
 export function corsMiddleware(req, res, next) {
@@ -16,7 +14,6 @@ export function corsMiddleware(req, res, next) {
             res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
         }
     }
-    // Handle preflight here
     if (req.method === 'OPTIONS') {
         return res.sendStatus(204);
     }

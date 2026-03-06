@@ -12,7 +12,7 @@ interface AuthRequestWithFile extends AuthRequest {
 class ChatController {
   async createConversation(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = req.user.id;
+      const userId = req.user!.id;
       const { id, title, mode, documentId, documentName, sessionId } = req.body;
 
       if (!mode || !['NORMAL', 'AGENTIC'].includes(mode)) {

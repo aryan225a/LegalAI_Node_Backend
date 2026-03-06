@@ -1,9 +1,8 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import type { SignOptions } from 'jsonwebtoken';
-import prisma from '../../config/database.js';
-import { AppError } from '../../middleware/error.middleware.js';
-import cacheService from '../../services/cache.service.js';
+import prisma from '../../../config/database.js';
+import { AppError } from '../../../middleware/error.middleware.js';
+import cacheService from '../../../services/cache.service.js';
+import { generateCitizenTokens, verifyRefreshToken } from '../../../utils/jwt.utils.js';
 
 class AuthService {
   async register(email: string, password: string, name: string) {
@@ -32,7 +31,7 @@ class AuthService {
       },
     });
 
-    const { accessToken, refreshToken } = this.generateTokens(user.id);
+    const { accessToken, refreshToken } = generateCitizenTokens(user.id);
 
     await this.storeRefreshToken(user.id, refreshToken);
 
@@ -64,7 +63,7 @@ class AuthService {
       data: { lastLoginAt: new Date() },
     });
 
-    const { accessToken, refreshToken } = this.generateTokens(user.id);
+    const { accessToken, refreshToken } = generateCitizenTokens(user.id);
 
     await this.storeRefreshToken(user.id, refreshToken);
 
@@ -81,41 +80,38 @@ class AuthService {
   }
 
   async refreshToken(refreshToken: string) {
-    try {
-      const decoded = jwt.verify(
-        refreshToken,
-        process.env.JWT_REFRESH_SECRET!
-      ) as { userId: string };
+    const decoded = verifyRefreshToken(refreshToken);
 
-      const storedToken = await prisma.refreshToken.findFirst({
-        where: {
-          token: refreshToken,
-          userId: decoded.userId,
-          expiresAt: { gte: new Date() },
-        },
-      });
+    if (decoded.userType !== 'CITIZEN') {
+      throw new AppError('Invalid refresh token for citizen account', 401);
+    }
 
-      if (!storedToken) {
-        throw new AppError('Invalid refresh token', 401);
-      }
+    const storedToken = await prisma.refreshToken.findFirst({
+      where: {
+        token: refreshToken,
+        userId: decoded.sub,
+        expiresAt: { gte: new Date() },
+      },
+    });
 
-      const { accessToken, refreshToken: newRefreshToken } = this.generateTokens(
-        decoded.userId
-      );
-
-      await prisma.refreshToken.delete({
-        where: { id: storedToken.id },
-      });
-
-      await this.storeRefreshToken(decoded.userId, newRefreshToken);
-
-      return {
-        accessToken,
-        refreshToken: newRefreshToken,
-      };
-    } catch (error) {
+    if (!storedToken) {
       throw new AppError('Invalid refresh token', 401);
     }
+
+    const { accessToken, refreshToken: newRefreshToken } = generateCitizenTokens(
+      decoded.sub
+    );
+
+    await prisma.refreshToken.delete({
+      where: { id: storedToken.id },
+    });
+
+    await this.storeRefreshToken(decoded.sub, newRefreshToken);
+
+    return {
+      accessToken,
+      refreshToken: newRefreshToken,
+    };
   }
 
   async logout(userId: string, refreshToken: string) {
@@ -130,22 +126,6 @@ class AuthService {
     await cacheService.clearUserRateLimits(userId);
   }
 
-  private generateTokens(userId: string) {
-    const accessToken = jwt.sign(
-      { userId },
-      process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '1d' } as SignOptions
-    );
-
-    const refreshToken = jwt.sign(
-      { userId },
-      process.env.JWT_REFRESH_SECRET!,
-      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d' } as SignOptions
-    );
-
-    return { accessToken, refreshToken };
-  }
-
   private async storeRefreshToken(userId: string, token: string) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
@@ -157,28 +137,6 @@ class AuthService {
         expiresAt,
       },
     });
-  }
-
-  async handleOAuthCallback(user: any) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    });
-
-    const { accessToken, refreshToken } = this.generateTokens(user.id);
-
-    await this.storeRefreshToken(user.id, refreshToken);
-
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatar: user.avatar,
-      },
-      accessToken,
-      refreshToken,
-    };
   }
 }
 

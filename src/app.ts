@@ -6,7 +6,9 @@ import { corsMiddleware } from './middleware/cors.middleware.js';
 import rateLimit from 'express-rate-limit';
 
 // Import routes
-import authRoutes from './module/auth/auth.route.js';
+import authRoutes from './module/auth/citizen/auth.route.js';
+import lawyerAuthRoutes from './module/auth/lawyer/lawyerauth.route.js';
+import firmAuthRoutes from './module/auth/firms/firmauth.route.js';
 import chatRoutes from './module/chat/chat.route.js';
 import documentRoutes from './module/document/document.route.js';
 import translationRoutes from './module/translation/translation.route.js';
@@ -52,6 +54,8 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/lawyer/auth', lawyerAuthRoutes);
+app.use('/api/firm/auth', firmAuthRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/translation', translationRoutes);

@@ -17,7 +17,10 @@ interface LanguageDetectionResult {
 }
 
 class TranslationService {
-  async translate(userId: string, text: string, sourceLang: string, targetLang: string): Promise<TranslationResult> {
+  async translate(userId: string, 
+    text: string, sourceLang: string, 
+    targetLang: string)
+    : Promise<TranslationResult> {
 
     const cached = await cacheService.getTranslation(text, sourceLang, targetLang);
 

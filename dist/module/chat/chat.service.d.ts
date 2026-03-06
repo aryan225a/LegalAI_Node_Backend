@@ -23,12 +23,12 @@ declare class ChatService {
         message: {
             id: string;
             createdAt: Date;
+            attachments: string[];
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             role: import("@prisma/client").$Enums.MessageRole;
             content: string;
             tokens: number | null;
             model: string | null;
-            attachments: string[];
             conversationId: string;
         };
         conversation: {
@@ -42,12 +42,12 @@ declare class ChatService {
         messages: {
             id: string;
             createdAt: Date;
+            attachments: string[];
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             role: import("@prisma/client").$Enums.MessageRole;
             content: string;
             tokens: number | null;
             model: string | null;
-            attachments: string[];
             conversationId: string;
         }[];
     } & {
@@ -97,9 +97,9 @@ declare class ChatService {
             messages: {
                 id: string;
                 createdAt: Date;
+                attachments: string[];
                 role: import("@prisma/client").$Enums.MessageRole;
                 content: string;
-                attachments: string[];
             }[];
         };
         shareInfo: {

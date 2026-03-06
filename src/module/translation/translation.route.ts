@@ -11,6 +11,7 @@ router.use(authenticate);
 router.post('/translate', (req: Request, res: Response, next: NextFunction) =>
   translationController.translate(req as AuthRequest, res, next)
 );
+
 router.post('/detect-language', (req: Request, res: Response, next: NextFunction) =>
   translationController.detectLanguage(req as AuthRequest, res, next)
 );

@@ -1,5 +1,12 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import redis from '../config/redis.js';
+function getRateLimitKey(req, scope) {
+    const userId = req.user?.id;
+    if (userId) {
+        return `${scope}:user:${userId}`;
+    }
+    return `${scope}:ip:${ipKeyGenerator(req.ip || 'unknown')}`;
+}
 export const apiLimiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
@@ -52,9 +59,7 @@ export const uploadLimiter = rateLimit({
     },
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => {
-        return req.user?.id || req.ip || 'unknown';
-    },
+    keyGenerator: (req) => getRateLimitKey(req, 'upload'),
     handler: (req, res) => {
         res.status(429).json({
             success: false,
@@ -74,9 +79,7 @@ export const messageLimiter = rateLimit({
     },
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => {
-        return req.user?.id || req.ip || 'unknown';
-    },
+    keyGenerator: (req) => getRateLimitKey(req, 'message'),
     handler: (req, res) => {
         res.status(429).json({
             success: false,

@@ -24,6 +24,60 @@ enum MessageRole {
   SYSTEM
 }
 
+enum UserType {
+  CITIZEN
+  LAWYER
+  FIRM_ADMIN
+  FIRM_MEMBER
+}
+
+enum VerificationStatus {
+  PENDING
+  FORMAT_FAILED
+  AUTO_VERIFIED
+  SUSPENDED
+}
+
+enum TwoFAMethod {
+  EMAIL
+  SMS
+  TOTP
+}
+
+enum OtpPurpose {
+  LOGIN_2FA
+  PHONE_VERIFICATION
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  SENSITIVE_ACTION
+}
+
+enum MatterStage {
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
+enum MatterDocType {
+  UPLOADED
+  GENERATED
+  ORDER
+  EVIDENCE
+  CORRESPONDENCE
+}
+
+enum MemberRole {
+  OWNER
+  ASSOCIATE
+  INTERN
+}
+
+enum EventStatus {
+  PENDING
+  COMPLETED
+  MISSED
+}
+
 model User {
   id            String        @id @default(cuid())
   email         String        @unique
@@ -186,4 +240,353 @@ model SharedLink {
   @@index([userId])
   @@index([conversationId])
   @@index([expiresAt])
+}
+
+model LawyerUser {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  name          String
+  password      String?
+  provider      AuthProvider  @default(LOCAL)
+  providerId    String?
+  emailVerified Boolean       @default(false)
+  encryptedPhone    String
+  encryptedBarNumber String
+  barCouncilState   String
+  practiceAreas     String[]
+  yearsOfExperience Int?
+  phoneVerified         Boolean            @default(false)
+  barNumberFormatValid  Boolean            @default(false)
+  verificationStatus    VerificationStatus @default(PENDING)
+  verifiedAt            DateTime?
+  verifiedBy            String?
+  validationErrors      Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  lastLoginAt   DateTime?
+  isLocked      Boolean       @default(false)
+  lockedAt      DateTime?
+  lockReason    String?
+  failedLoginAttempts Int     @default(0)
+  twoFactorAuth     LawyerTwoFactorAuth?
+  otpRecords        OtpRecord[]
+  refreshTokens     LawyerRefreshToken[]
+  conversations     LawyerConversation[]
+  matters           Matter[]
+  matterDocuments   MatterDocument[]
+  matterMembers     MatterMember[]
+  @@index([email])
+  @@index([providerId])
+  @@index([verificationStatus])
+  @@index([barCouncilState])
+}
+
+model LawyerTwoFactorAuth {
+  id              String      @id @default(cuid())
+  lawyerId        String      @unique
+  method          TwoFAMethod @default(EMAIL)
+  isEnabled       Boolean     @default(true)
+  isSetupComplete Boolean     @default(false)
+  encryptedTotpSecret String?
+  hashedBackupCodes   String[]
+  backupCodesUsedCount Int     @default(0)
+  lastUsedAt      DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  lawyer          LawyerUser  @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
+}
+
+model FirmUser {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  name          String
+  password      String
+  firmName      String
+  encryptedPhone              String
+  encryptedRegistrationNumber String
+  encryptedGstNumber          String?
+  city          String
+  state         String
+  address       String?
+  domain              String?
+  domainVerified      Boolean   @default(false)
+  domainVerifyToken   String?
+  emailVerified         Boolean            @default(false)
+  phoneVerified         Boolean            @default(false)
+  registrationFormatValid Boolean          @default(false)
+  verificationStatus    VerificationStatus @default(PENDING)
+  verifiedAt            DateTime?
+  validationErrors      Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  lastLoginAt   DateTime?
+  isLocked      Boolean       @default(false)
+  lockedAt      DateTime?
+  lockReason    String?
+  failedLoginAttempts Int     @default(0)
+  knownIpAddresses    String[]  @default([])
+  twoFactorAuth     FirmTwoFactorAuth?
+  otpRecords        FirmOtpRecord[]
+  refreshTokens     FirmRefreshToken[]
+  members           FirmMember[]
+  @@index([email])
+  @@index([verificationStatus])
+  @@index([state])
+}
+
+model FirmTwoFactorAuth {
+  id              String      @id @default(cuid())
+  firmId          String      @unique
+  method          TwoFAMethod @default(EMAIL)
+  isEnabled       Boolean     @default(true)
+  isSetupComplete Boolean     @default(false)
+  encryptedTotpSecret String?
+  hashedBackupCodes   String[]
+  backupCodesUsedCount Int     @default(0)
+  lastUsedAt      DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  firm            FirmUser    @relation(fields: [firmId], references: [id], onDelete: Cascade)
+}
+
+model FirmMember {
+  id        String     @id @default(cuid())
+  firmId    String
+  email     String
+  role      MemberRole @default(ASSOCIATE)
+  inviteToken   String?   @unique
+  inviteExpiry  DateTime?
+  acceptedAt    DateTime?
+  createdAt DateTime   @default(now())
+  firm      FirmUser   @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  @@unique([firmId, email])
+  @@index([firmId])
+  @@index([email])
+}
+
+model OtpRecord {
+  id            String      @id @default(cuid())
+  lawyerId      String
+  hashedOtp     String
+  purpose       OtpPurpose
+  attempts      Int         @default(0)
+  maxAttempts   Int         @default(3)
+  expiresAt     DateTime
+  usedAt        DateTime?
+  invalidatedAt DateTime?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime    @default(now())
+  lawyer        LawyerUser  @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
+  @@index([lawyerId, purpose])
+  @@index([expiresAt])
+}
+
+model FirmOtpRecord {
+  id            String      @id @default(cuid())
+  firmId        String
+  hashedOtp     String
+  purpose       OtpPurpose
+  attempts      Int         @default(0)
+  maxAttempts   Int         @default(3)
+  expiresAt     DateTime
+  usedAt        DateTime?
+  invalidatedAt DateTime?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime    @default(now())
+  firm          FirmUser    @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  @@index([firmId, purpose])
+  @@index([expiresAt])
+}
+
+model LawyerRefreshToken {
+  id          String      @id @default(cuid())
+  lawyerId    String
+  token       String      @unique
+  expiresAt   DateTime
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
+  lawyer      LawyerUser  @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
+  @@index([lawyerId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model FirmRefreshToken {
+  id          String    @id @default(cuid())
+  firmId      String
+  token       String    @unique
+  expiresAt   DateTime
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+  firm        FirmUser  @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  @@index([firmId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model Matter {
+  id            String        @id @default(cuid())
+  lawyerId      String
+  title         String
+  caseNumber    String?
+  court         String?
+  practiceArea  String?
+  stage         MatterStage   @default(ACTIVE)
+  parties       Json?
+  notes         String?       @db.Text
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  archivedAt    DateTime?
+  lawyer        LawyerUser    @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
+  documents     MatterDocument[]
+  conversations LawyerConversation[]
+  events        MatterEvent[]
+  memory        WorkspaceMemory?
+  members       MatterMember[]
+  @@index([lawyerId])
+  @@index([stage])
+  @@index([createdAt])
+}
+
+model WorkspaceMemory {
+  id            String    @id @default(cuid())
+  matterId      String    @unique
+  partySummary      String?   @db.Text
+  factChronology    String?   @db.Text
+  legalIssues       String?   @db.Text
+  documentIndex     Json?
+  keyDates          Json?
+  lawyerNotes       String?   @db.Text
+  aiSummary         String?   @db.Text
+  aiSummaryVersion  Int       @default(0)
+  lastAiUpdateAt    DateTime?
+  estimatedTokens   Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  matter        Matter    @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  @@index([matterId])
+}
+
+model MatterDocument {
+  id            String        @id @default(cuid())
+  matterId      String
+  uploadedBy    String
+  type          MatterDocType
+  title         String
+  originalName  String?
+  fileUrl       String?
+  vectorDocId   String?
+  vectorIndexed Boolean       @default(false)
+  aiSummary     String?       @db.Text
+  extractedDates Json?
+  contentJson   Json?
+  contentText   String?       @db.Text
+  contentHtml   String?       @db.Text
+  isEditable    Boolean       @default(false)
+  lastEditedAt  DateTime?
+  lastEditedBy  String?
+  version       Int           @default(1)
+  parentDocId   String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  matter        Matter        @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  uploader      LawyerUser    @relation(fields: [uploadedBy], references: [id])
+  versions      DocumentVersion[]
+  @@index([matterId])
+  @@index([uploadedBy])
+  @@index([type])
+  @@index([vectorIndexed])
+}
+
+model DocumentVersion {
+  id            String    @id @default(cuid())
+  documentId    String
+  version       Int
+  contentJson   Json
+  contentText   String?   @db.Text
+  snapshot      String?
+  createdBy     String
+  createdAt     DateTime  @default(now())
+  document      MatterDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  @@index([documentId, version])
+}
+
+model MatterEvent {
+  id            String      @id @default(cuid())
+  matterId      String
+  title         String
+  eventDate     DateTime
+  isDeadline    Boolean     @default(false)
+  reminderDays  Int[]
+  notes         String?
+  status        EventStatus @default(PENDING)
+  completedAt   DateTime?
+  remindersSent Int[]       @default([])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  matter        Matter      @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  @@index([matterId])
+  @@index([eventDate])
+  @@index([status])
+}
+
+model MatterMember {
+  id        String     @id @default(cuid())
+  matterId  String
+  lawyerId  String
+  role      MemberRole @default(ASSOCIATE)
+  addedAt   DateTime   @default(now())
+  matter    Matter     @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  lawyer    LawyerUser @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
+  @@unique([matterId, lawyerId])
+  @@index([matterId])
+  @@index([lawyerId])
+}
+
+model LawyerConversation {
+  id            String      @id
+  lawyerId      String
+  matterId      String?
+  title         String
+  mode          ChatMode    @default(NORMAL)
+  documentId    String?
+  documentName  String?
+  sessionId     String?
+  metadata      Json?
+  language      String?
+  isShared      Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  lastMessageAt DateTime    @default(now())
+  summary           String?   @db.Text
+  summaryUpdatedAt  DateTime?
+  lastMemoryInjectedAt  DateTime?
+  memoryVersionAtInject Int?
+  lawyer        LawyerUser  @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
+  matter        Matter?     @relation(fields: [matterId], references: [id])
+  messages      LawyerMessage[]
+  @@index([lawyerId])
+  @@index([matterId])
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
+model LawyerMessage {
+  id              String             @id
+  conversationId  String
+  role            MessageRole
+  content         String             @db.Text
+  tokens          Int?
+  model           String?
+  metadata        Json?
+  attachments     String[]
+  memoryInjected  Boolean            @default(false)
+  createdAt       DateTime           @default(now())
+  conversation    LawyerConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  @@index([conversationId])
+  @@index([createdAt])
 }

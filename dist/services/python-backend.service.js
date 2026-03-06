@@ -64,8 +64,7 @@ class PythonBackendService {
             template_name: templateName,
             data,
         };
-        const response = await this.client.post('/api/v1/generate-document', // CORRECT: with hyphen
-        request);
+        const response = await this.client.post('/api/v1/generate-document', request);
         return response.data;
     }
     async translate(text, sourceLang = 'en', targetLang = 'hi') {
