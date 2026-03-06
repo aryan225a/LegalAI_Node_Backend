@@ -27,6 +27,5 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
-dist
 db_guide.md
 LOCAL_AUTH_TESTING.md
