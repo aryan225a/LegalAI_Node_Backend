@@ -122,7 +122,7 @@ export function generateTwoFaTempToken(
     purpose: 'TWO_FA_PENDING',
   };
 
-  return jwt.sign(payload, JWT_SECRET(), { expiresIn: '5m' } as SignOptions);
+  return jwt.sign(payload, JWT_SECRET(), { expiresIn: '10m' } as SignOptions);
 }
 
 export function verifyTwoFaTempToken(token: string): TwoFaTempPayload {
