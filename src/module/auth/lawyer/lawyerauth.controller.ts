@@ -14,8 +14,14 @@ class LawyerAuthController {
 
   async verifyEmail(req: Request, res: Response, next: NextFunction) {
     try {
-      const { lawyerId, otp } = req.body;
-      const result = await lawyerAuthService.verifyEmail(lawyerId, otp);
+      const { email, otp } = req.body;
+      if (!email || typeof email !== 'string') {
+        throw new AppError('email is required', 400, 'MISSING_EMAIL');
+      }
+      if (!otp || typeof otp !== 'string') {
+        throw new AppError('otp is required', 400, 'MISSING_OTP');
+      }
+      const result = await lawyerAuthService.verifyEmail(email, otp);
       res.status(200).json({ success: true, data: result });
     } catch (error) { next(error); }
   }

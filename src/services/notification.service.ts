@@ -89,7 +89,6 @@ class NotificationService {
 
       if (error) {
         logger.error('Resend delivery error', { to, purpose, error });
-        // Not thrown — OTP is already in DB, user can request resend
         return;
       }
 

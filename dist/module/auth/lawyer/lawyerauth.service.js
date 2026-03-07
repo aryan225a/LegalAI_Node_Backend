@@ -86,14 +86,22 @@ class LawyerAuthService {
                 : 'Registration submitted. Some details need correction — see validationErrors.',
         };
     }
-    async verifyEmail(lawyerId, otp) {
-        await otpService.verify(lawyerId, 'lawyer', 'EMAIL_VERIFICATION', otp);
+    async verifyEmail(email, otp) {
+        const normalizedEmail = email.trim().toLowerCase();
+        const existingLawyer = await prisma.lawyerUser.findUnique({
+            where: { email: normalizedEmail },
+            select: { id: true },
+        });
+        if (!existingLawyer) {
+            throw new AppError('Lawyer account not found', 404, 'USER_NOT_FOUND');
+        }
+        await otpService.verify(existingLawyer.id, 'lawyer', 'EMAIL_VERIFICATION', otp);
         const lawyer = await prisma.lawyerUser.update({
-            where: { id: lawyerId },
+            where: { email: normalizedEmail },
             data: { emailVerified: true },
             select: { id: true, email: true, name: true, verificationStatus: true },
         });
-        logger.info('Lawyer email verified', { lawyerId });
+        logger.info('Lawyer email verified', { lawyerId: lawyer.id });
         return lawyer;
     }
     async loginStep1(email, password) {

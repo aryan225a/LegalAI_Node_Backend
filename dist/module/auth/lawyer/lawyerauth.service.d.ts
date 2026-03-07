@@ -21,7 +21,7 @@ declare class LawyerAuthService {
         validationErrors: ValidationError[] | undefined;
         message: string;
     }>;
-    verifyEmail(lawyerId: string, otp: string): Promise<{
+    verifyEmail(email: string, otp: string): Promise<{
         id: string;
         email: string;
         name: string;
