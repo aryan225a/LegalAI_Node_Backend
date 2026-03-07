@@ -36,6 +36,7 @@ class LawyerAuthController {
 
   async loginStep2(req: Request, res: Response, next: NextFunction) {
     try {
+      console.log('verify-2fa body:', JSON.stringify(req.body));
       const { twoFactorToken, otp } = req.body;
       const result = await lawyerAuthService.loginStep2(twoFactorToken, otp, req.ip);
       res.status(200).json({ success: true, data: result });
