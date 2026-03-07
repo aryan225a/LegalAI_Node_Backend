@@ -50,7 +50,7 @@ export function generateTwoFaTempToken(userId, userType) {
         userType,
         purpose: 'TWO_FA_PENDING',
     };
-    return jwt.sign(payload, JWT_SECRET(), { expiresIn: '5m' });
+    return jwt.sign(payload, JWT_SECRET(), { expiresIn: '10m' });
 }
 export function verifyTwoFaTempToken(token) {
     try {
