@@ -2,30 +2,35 @@ import prisma from '../../config/database.js';
 import pythonBackend from '../../services/python-backend.service.js';
 import { AppError } from '../../middleware/error.middleware.js';
 class DocumentService {
-    async generateDocument(userId, prompt, format = 'pdf') {
-        // Call Python backend to generate document
-        const templateData = {
-            prompt: prompt,
-            format: format,
-            user_instructions: prompt
-        };
-        const result = await pythonBackend.generateDocument('default', templateData);
-        // Save document metadata to database
+    async listTemplates() {
+        return pythonBackend.listTemplates();
+    }
+    async getTemplateSchema(templateName) {
+        return pythonBackend.getTemplateSchema(templateName);
+    }
+    async getTemplateInfo(templateName) {
+        return pythonBackend.getTemplateInfo(templateName);
+    }
+    async getTemplateCriticalFields(templateName) {
+        return pythonBackend.getTemplateCriticalFields(templateName);
+    }
+    async generateDocument(userId, templateName, data, format = 'pdf') {
+        const result = await pythonBackend.generateDocument(templateName, data);
         const document = await prisma.document.create({
             data: {
                 userId,
                 title: `Document ${new Date().toISOString()}`,
                 content: result.document_content || '',
                 format,
-                fileUrl: '', // File URL would need to be handled by the Python backend
-                prompt,
+                fileUrl: '',
+                prompt: JSON.stringify(data),
                 generatedBy: 'legal-ai-python-backend',
-                metadata: { generated_content: result.document_content },
+                metadata: { template_name: templateName, generated_content: result.document_content },
             },
         });
         return {
             document,
-            downloadUrl: '', // This would be provided by the Python backend
+            downloadUrl: '',
         };
     }
     async getUserDocuments(userId) {

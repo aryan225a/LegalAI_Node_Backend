@@ -59,6 +59,22 @@ class PythonBackendService {
         const response = await this.client.post('/api/v1/agent/detect-language', { text });
         return response.data;
     }
+    async listTemplates() {
+        const response = await this.client.get('/api/v1/generate-document/templates');
+        return response.data;
+    }
+    async getTemplateSchema(templateName) {
+        const response = await this.client.get(`/api/v1/generate-document/templates/${encodeURIComponent(templateName)}/schema`);
+        return response.data;
+    }
+    async getTemplateInfo(templateName) {
+        const response = await this.client.get(`/api/v1/generate-document/templates/${encodeURIComponent(templateName)}/info`);
+        return response.data;
+    }
+    async getTemplateCriticalFields(templateName) {
+        const response = await this.client.get(`/api/v1/generate-document/templates/${encodeURIComponent(templateName)}/critical-fields`);
+        return response.data;
+    }
     async generateDocument(templateName, data) {
         const request = {
             template_name: templateName,

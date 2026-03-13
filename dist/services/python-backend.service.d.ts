@@ -1,4 +1,4 @@
-import { AgentChatResponse, UploadAndChatResponse, ChatResponse, TranslateResponse, DetectLanguageResponse, DocGenResponse } from '../types/python-backend.types.js';
+import { AgentChatResponse, UploadAndChatResponse, ChatResponse, TranslateResponse, DetectLanguageResponse, DocGenResponse, TemplateListResponse, TemplateSchemaResponse, TemplateDetailResponse, TemplateCriticalFieldsResponse } from '../types/python-backend.types.js';
 declare class PythonBackendService {
     private client;
     constructor();
@@ -9,6 +9,10 @@ declare class PythonBackendService {
     agentChat(message: string, sessionId?: string, documentId?: string): Promise<AgentChatResponse>;
     agentUploadAndChat(file: Buffer, fileName: string, initialMessage?: string, sessionId?: string, inputLanguage?: string, outputLanguage?: string): Promise<UploadAndChatResponse>;
     detectLanguage(text: string): Promise<DetectLanguageResponse>;
+    listTemplates(): Promise<TemplateListResponse>;
+    getTemplateSchema(templateName: string): Promise<TemplateSchemaResponse>;
+    getTemplateInfo(templateName: string): Promise<TemplateDetailResponse>;
+    getTemplateCriticalFields(templateName: string): Promise<TemplateCriticalFieldsResponse>;
     generateDocument(templateName: string, data: Record<string, any>): Promise<DocGenResponse>;
     translate(text: string, sourceLang?: string, targetLang?: string): Promise<TranslateResponse>;
 }

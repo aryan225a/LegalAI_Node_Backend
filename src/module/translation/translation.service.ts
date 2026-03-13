@@ -17,8 +17,10 @@ interface LanguageDetectionResult {
 }
 
 class TranslationService {
-  async translate(userId: string, 
-    text: string, sourceLang: string, 
+  async translate(
+    userId: string, 
+    text: string, 
+    sourceLang: string, 
     targetLang: string)
     : Promise<TranslationResult> {
 
@@ -52,6 +54,7 @@ class TranslationService {
         metadata: {},
       },
     });
+    
     await cacheService.cacheTranslation(text, sourceLang, targetLang, translatedText);
 
     return {

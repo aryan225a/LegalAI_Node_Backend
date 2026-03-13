@@ -6,10 +6,9 @@ import { body, param, validationResult } from 'express-validator';
 
 const router = Router();
 
-// Apply authentication middleware to all routes
+
 router.use(authenticate);
 
-// Validation middleware
 const validateRequest = (req: Request, res: Response, next: NextFunction) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -22,14 +21,14 @@ const validateRequest = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
-// Generate document validation
 const generateDocumentValidation = [
-  body('prompt')
+  body('template_name')
     .isString()
     .notEmpty()
-    .withMessage('Prompt is required and must be a non-empty string')
-    .isLength({ min: 10, max: 5000 })
-    .withMessage('Prompt must be between 10 and 5000 characters'),
+    .withMessage('template_name is required and must be a non-empty string'),
+  body('data')
+    .isObject()
+    .withMessage('data must be an object containing template field values'),
   body('format')
     .optional()
     .isString()
@@ -37,12 +36,49 @@ const generateDocumentValidation = [
     .withMessage('Format must be one of: pdf, docx, txt'),
 ];
 
-// Document ID validation
+
+const templateNameValidation = [
+  param('template_name')
+    .isString()
+    .notEmpty()
+    .withMessage('template_name is required'),
+];
+
 const documentIdValidation = [
   param('id')
     .isUUID()
     .withMessage('Document ID must be a valid UUID'),
 ];
+
+router.get(
+  '/templates',
+  (req: Request, res: Response, next: NextFunction) =>
+    documentController.listTemplates(req as AuthRequest, res, next)
+);
+
+router.get(
+  '/templates/:template_name/schema',
+  templateNameValidation,
+  validateRequest,
+  (req: Request, res: Response, next: NextFunction) =>
+    documentController.getTemplateSchema(req as AuthRequest, res, next)
+);
+
+router.get(
+  '/templates/:template_name/info',
+  templateNameValidation,
+  validateRequest,
+  (req: Request, res: Response, next: NextFunction) =>
+    documentController.getTemplateInfo(req as AuthRequest, res, next)
+);
+
+router.get(
+  '/templates/:template_name/critical-fields',
+  templateNameValidation,
+  validateRequest,
+  (req: Request, res: Response, next: NextFunction) =>
+    documentController.getTemplateCriticalFields(req as AuthRequest, res, next)
+);
 
 router.post(
   '/',

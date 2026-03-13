@@ -11,6 +11,10 @@ import {
   DetectLanguageResponse,
   DocGenRequest,
   DocGenResponse,
+  TemplateListResponse,
+  TemplateSchemaResponse,
+  TemplateDetailResponse,
+  TemplateCriticalFieldsResponse,
 } from '../types/python-backend.types.js';
 
 class PythonBackendService {
@@ -110,6 +114,34 @@ class PythonBackendService {
     return response.data;
   }
 
+  async listTemplates(): Promise<TemplateListResponse> {
+    const response = await this.client.get<TemplateListResponse>(
+      '/api/v1/generate-document/templates'
+    );
+    return response.data;
+  }
+
+  async getTemplateSchema(templateName: string): Promise<TemplateSchemaResponse> {
+    const response = await this.client.get<TemplateSchemaResponse>(
+      `/api/v1/generate-document/templates/${encodeURIComponent(templateName)}/schema`
+    );
+    return response.data;
+  }
+
+  async getTemplateInfo(templateName: string): Promise<TemplateDetailResponse> {
+    const response = await this.client.get<TemplateDetailResponse>(
+      `/api/v1/generate-document/templates/${encodeURIComponent(templateName)}/info`
+    );
+    return response.data;
+  }
+
+  async getTemplateCriticalFields(templateName: string): Promise<TemplateCriticalFieldsResponse> {
+    const response = await this.client.get<TemplateCriticalFieldsResponse>(
+      `/api/v1/generate-document/templates/${encodeURIComponent(templateName)}/critical-fields`
+    );
+    return response.data;
+  }
+
   async generateDocument(
     templateName: string,
     data: Record<string, any>
@@ -120,7 +152,7 @@ class PythonBackendService {
     };
 
     const response = await this.client.post<DocGenResponse>(
-      '/api/v1/generate-document', 
+      '/api/v1/generate-document',
       request
     );
     return response.data;

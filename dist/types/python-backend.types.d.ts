@@ -76,4 +76,46 @@ export interface DocGenRequest {
 export interface DocGenResponse {
     document_content: string;
 }
+export interface TemplateInfo {
+    name: string;
+    display_name?: string;
+    description?: string;
+    category?: string;
+}
+export interface TemplateListResponse {
+    templates: TemplateInfo[];
+    total: number;
+}
+export interface TemplateSchemaField {
+    name: string;
+    type: string;
+    required: boolean;
+    critical: boolean;
+    description?: string;
+    default?: any;
+    examples?: any[];
+}
+export interface TemplateSchemaResponse {
+    template_name: string;
+    critical_fields: TemplateSchemaField[];
+    optional_fields: TemplateSchemaField[];
+    all_fields: TemplateSchemaField[];
+}
+export interface TemplateMetadata {
+    title?: string;
+    description?: string;
+    category?: string;
+    version?: string;
+    author?: string;
+    [key: string]: any;
+}
+export interface TemplateDetailResponse {
+    template_name: string;
+    metadata: TemplateMetadata;
+    schema: TemplateSchemaResponse;
+}
+export interface TemplateCriticalFieldsResponse {
+    template_name: string;
+    critical_fields: string[];
+}
 //# sourceMappingURL=python-backend.types.d.ts.map

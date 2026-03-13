@@ -1,10 +1,49 @@
 import documentService from './document.service.js';
 class DocumentController {
+    async listTemplates(req, res, next) {
+        try {
+            const templates = await documentService.listTemplates();
+            res.status(200).json({ success: true, data: templates });
+        }
+        catch (error) {
+            next(error);
+        }
+    }
+    async getTemplateSchema(req, res, next) {
+        try {
+            const { template_name } = req.params;
+            const schema = await documentService.getTemplateSchema(template_name);
+            res.status(200).json({ success: true, data: schema });
+        }
+        catch (error) {
+            next(error);
+        }
+    }
+    async getTemplateInfo(req, res, next) {
+        try {
+            const { template_name } = req.params;
+            const info = await documentService.getTemplateInfo(template_name);
+            res.status(200).json({ success: true, data: info });
+        }
+        catch (error) {
+            next(error);
+        }
+    }
+    async getTemplateCriticalFields(req, res, next) {
+        try {
+            const { template_name } = req.params;
+            const criticalFields = await documentService.getTemplateCriticalFields(template_name);
+            res.status(200).json({ success: true, data: criticalFields });
+        }
+        catch (error) {
+            next(error);
+        }
+    }
     async generateDocument(req, res, next) {
         try {
             const userId = req.user.id;
-            const { prompt, format } = req.body;
-            const result = await documentService.generateDocument(userId, prompt, format);
+            const { template_name, data, format } = req.body;
+            const result = await documentService.generateDocument(userId, template_name, data, format);
             res.status(201).json({
                 success: true,
                 data: result,
@@ -27,7 +66,6 @@ class DocumentController {
             next(error);
         }
     }
-    // get document by id
     async getDocument(req, res, next) {
         try {
             const userId = req.user.id;

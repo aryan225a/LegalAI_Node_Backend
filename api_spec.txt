@@ -800,15 +800,21 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "prompt": {
-                    "type": "string"
+                  "template_name": {
+                    "type": "string",
+                    "description": "Template filename (e.g. vakalatnama.j2)"
+                  },
+                  "data": {
+                    "type": "object",
+                    "description": "Template field values",
+                    "additionalProperties": true
                   },
                   "format": {
                     "type": "string",
                     "enum": ["pdf", "docx", "txt"]
                   }
                 },
-                "required": ["prompt"]
+                "required": ["template_name", "data"]
               }
             }
           }
@@ -866,6 +872,150 @@
                         "$ref": "#/components/schemas/Document"
                       }
                     }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/templates": {
+      "get": {
+        "summary": "List all templates",
+        "description": "Get list of all lawyer-specific legal document templates",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of available templates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "templates": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/TemplateInfo" }
+                        },
+                        "total": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/templates/{template_name}/schema": {
+      "get": {
+        "summary": "Get template schema",
+        "description": "Get field requirements with critical/optional distinction for dynamic form generation",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "template_name",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Template filename (e.g. vakalatnama.j2)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template schema with critical and optional fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/TemplateSchemaResponse" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/templates/{template_name}/info": {
+      "get": {
+        "summary": "Get template details",
+        "description": "Get complete template information including metadata and schema",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "template_name",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Template filename (e.g. cheque_bounce_notice.j2)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Complete template details with metadata and schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/TemplateDetailResponse" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/templates/{template_name}/critical-fields": {
+      "get": {
+        "summary": "Get critical fields",
+        "description": "Get list of critical fields that must be provided for a template",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "template_name",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Template filename (e.g. bail_application.j2)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of critical field names for the template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/TemplateCriticalFieldsResponse" }
                   }
                 }
               }
@@ -2189,6 +2339,73 @@
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" },
           "lastLoginAt": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "TemplateInfo": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "display_name": { "type": "string" },
+          "description": { "type": "string" },
+          "category": { "type": "string" }
+        }
+      },
+      "TemplateSchemaField": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "required": { "type": "boolean" },
+          "critical": { "type": "boolean" },
+          "description": { "type": "string" },
+          "default": {},
+          "examples": { "type": "array", "items": {} }
+        }
+      },
+      "TemplateSchemaResponse": {
+        "type": "object",
+        "properties": {
+          "template_name": { "type": "string" },
+          "critical_fields": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/TemplateSchemaField" }
+          },
+          "optional_fields": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/TemplateSchemaField" }
+          },
+          "all_fields": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/TemplateSchemaField" }
+          }
+        }
+      },
+      "TemplateDetailResponse": {
+        "type": "object",
+        "properties": {
+          "template_name": { "type": "string" },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "description": { "type": "string" },
+              "category": { "type": "string" },
+              "version": { "type": "string" },
+              "author": { "type": "string" }
+            },
+            "additionalProperties": true
+          },
+          "schema": { "$ref": "#/components/schemas/TemplateSchemaResponse" }
+        }
+      },
+      "TemplateCriticalFieldsResponse": {
+        "type": "object",
+        "properties": {
+          "template_name": { "type": "string" },
+          "critical_fields": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
         }
       }
     },

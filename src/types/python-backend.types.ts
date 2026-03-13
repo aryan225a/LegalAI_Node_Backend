@@ -24,7 +24,6 @@ export interface AgentChatResponse {
   };
 }
 
-// Upload and Chat Types
 export interface UploadAndChatResponse {
   document_id: string;           
   storage_url: string;
@@ -37,7 +36,6 @@ export interface UploadAndChatResponse {
   deduplication_info?: any;
 }
 
-// General Chat Types
 export interface ChatRequest {
   prompt: string;
   history?: Array<{role: string; content: string}>;
@@ -49,7 +47,6 @@ export interface ChatResponse {
   updated_summary?: string;
 }
 
-// Translation Types
 export interface TranslateRequest {
   text: string;
   source_lang?: string;
@@ -60,7 +57,6 @@ export interface TranslateResponse {
   translated_text: string;
 }
 
-// Language Detection Types (matches Python backend LanguageDetectionRequest/Response)
 export interface DetectLanguageRequest {
   text: string;
 }
@@ -80,7 +76,7 @@ export interface DetectLanguageResponse {
   };
 }
 
-// Document Generation Types
+
 export interface DocGenRequest {
   template_name: string;
   data: Record<string, any>;
@@ -88,4 +84,53 @@ export interface DocGenRequest {
 
 export interface DocGenResponse {
   document_content: string;
+}
+
+export interface TemplateInfo {
+  name: string;
+  display_name?: string;
+  description?: string;
+  category?: string;
+}
+
+export interface TemplateListResponse {
+  templates: TemplateInfo[];
+  total: number;
+}
+
+export interface TemplateSchemaField {
+  name: string;
+  type: string;
+  required: boolean;
+  critical: boolean;
+  description?: string;
+  default?: any;
+  examples?: any[];
+}
+
+export interface TemplateSchemaResponse {
+  template_name: string;
+  critical_fields: TemplateSchemaField[];
+  optional_fields: TemplateSchemaField[];
+  all_fields: TemplateSchemaField[];
+}
+
+export interface TemplateMetadata {
+  title?: string;
+  description?: string;
+  category?: string;
+  version?: string;
+  author?: string;
+  [key: string]: any;
+}
+
+export interface TemplateDetailResponse {
+  template_name: string;
+  metadata: TemplateMetadata;
+  schema: TemplateSchemaResponse;
+}
+
+export interface TemplateCriticalFieldsResponse {
+  template_name: string;
+  critical_fields: string[];
 }

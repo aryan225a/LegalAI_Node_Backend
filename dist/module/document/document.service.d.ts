@@ -1,5 +1,9 @@
 declare class DocumentService {
-    generateDocument(userId: string, prompt: string, format?: string): Promise<{
+    listTemplates(): Promise<import("../../types/python-backend.types.js").TemplateListResponse>;
+    getTemplateSchema(templateName: string): Promise<import("../../types/python-backend.types.js").TemplateSchemaResponse>;
+    getTemplateInfo(templateName: string): Promise<import("../../types/python-backend.types.js").TemplateDetailResponse>;
+    getTemplateCriticalFields(templateName: string): Promise<import("../../types/python-backend.types.js").TemplateCriticalFieldsResponse>;
+    generateDocument(userId: string, templateName: string, data: Record<string, any>, format?: string): Promise<{
         document: {
             id: string;
             createdAt: Date;
