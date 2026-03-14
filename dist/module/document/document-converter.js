@@ -1,77 +1,145 @@
 import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
 import HTMLtoDOCX from 'html-to-docx';
-function buildFullHtml(rawHtml) {
-    const isFullDocument = /<html[\s>]/i.test(rawHtml);
-    if (isFullDocument)
-        return rawHtml;
+import { marked } from 'marked';
+function buildFullHtml(rawContent) {
+    if (/<html[\s>]/i.test(rawContent))
+        return rawContent;
+    const looksLikeMarkdown = /\*\*[^*]+\*\*/.test(rawContent) ||
+        /^#{1,4}\s/m.test(rawContent) ||
+        /^[-*]\s/m.test(rawContent);
+    let bodyHtml;
+    if (looksLikeMarkdown) {
+        marked.setOptions({
+            gfm: true,
+            breaks: true,
+        });
+        bodyHtml = marked.parse(rawContent);
+    }
+    else {
+        bodyHtml = rawContent
+            .split('\n')
+            .map((line) => line.trim() ? `<p>${line}</p>` : '<p>&nbsp;</p>')
+            .join('\n');
+    }
+    bodyHtml = bodyHtml.replace(/\[([A-Z][A-Z0-9 :_/\-]{1,60})\]/g, '<span class="placeholder">[$1]</span>');
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    /* ── Base ── */
+    /* ── Page setup ── */
+    @page { margin: 25mm 20mm; }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
       font-family: "Times New Roman", Times, serif;
       font-size: 12pt;
-      line-height: 1.6;
+      line-height: 1.8;
       color: #000;
       background: #fff;
-      padding: 40px 48px;
-      max-width: 800px;
+      max-width: 210mm;
       margin: 0 auto;
+      padding: 0 0 20mm 0;
     }
 
     /* ── Headings ── */
-    h1, h2, h3, h4 {
-      font-family: Arial, Helvetica, sans-serif;
-      margin-top: 20px;
-      margin-bottom: 8px;
-      color: #111;
+    h1 {
+      font-size: 14pt;
+      font-weight: bold;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 18pt 0 10pt;
     }
-    h1 { font-size: 16pt; text-align: center; text-transform: uppercase; }
-    h2 { font-size: 14pt; }
-    h3 { font-size: 12pt; }
+    h2 {
+      font-size: 12pt;
+      font-weight: bold;
+      text-decoration: underline;
+      margin: 14pt 0 6pt;
+    }
+    h3 {
+      font-size: 12pt;
+      font-weight: bold;
+      margin: 10pt 0 4pt;
+    }
+    h4 {
+      font-size: 12pt;
+      font-weight: bold;
+      font-style: italic;
+      margin: 8pt 0 4pt;
+    }
 
-    /* ── Paragraphs & spacing ── */
-    p  { margin-bottom: 10px; text-align: justify; }
-    br { display: block; margin: 4px 0; }
+    /* ── Body text ── */
+    p {
+      margin-bottom: 8pt;
+      text-align: justify;
+      text-indent: 0;
+    }
+
+    /* ── Inline bold from markdown **text** ── */
+    strong {
+      font-weight: bold;
+    }
+
+    /* ── Lists ── */
+    ul, ol {
+      margin: 6pt 0 6pt 24pt;
+      padding: 0;
+    }
+    li {
+      margin-bottom: 4pt;
+      text-align: justify;
+    }
+
+    /* ── Numbered section headers that come through as bold paragraphs ──
+       e.g. <p><strong>1. DEMAND:</strong></p>
+       These get extra top margin so sections breathe. */
+    p > strong:first-child {
+      display: block;
+      margin-top: 10pt;
+    }
+
+    /* ── Horizontal rules (--- in markdown) ── */
+    hr {
+      border: none;
+      border-top: 1px solid #000;
+      margin: 12pt 0;
+    }
 
     /* ── Tables ── */
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 12px 0;
+      margin: 10pt 0;
       font-size: 11pt;
     }
     th, td {
       border: 1px solid #555;
-      padding: 6px 10px;
+      padding: 5pt 8pt;
       vertical-align: top;
+      text-align: left;
     }
-    th { background: #f0f0f0; font-weight: bold; }
+    th { background: #f2f2f2; font-weight: bold; }
 
-    /* ── Lists ── */
-    ul, ol { margin: 8px 0 8px 24px; }
-    li { margin-bottom: 4px; }
-
-    /* ── Legal-specific ── */
-    .party-block  { margin: 16px 0; }
-    .signature    { margin-top: 40px; }
-    .notice-head  { text-align: center; font-weight: bold; margin-bottom: 16px; }
-    .clause       { margin: 10px 0 10px 16px; }
-
-    /* ── Placeholders (show clearly on screen, print normally) ── */
-    [data-placeholder], .placeholder {
-      color: #c00;
+    /* ── Unfilled placeholders ── */
+    .placeholder {
+      color: #cc0000;
       font-style: italic;
+      font-family: "Courier New", monospace;
+      font-size: 10pt;
+      background: #fff8f8;
+      border-radius: 2px;
+      padding: 0 2px;
     }
+
+    /* ── Signature / sign-off block ── */
+    .signature { margin-top: 32pt; }
   </style>
 </head>
 <body>
-  ${rawHtml}
+${bodyHtml}
 </body>
 </html>`;
 }
@@ -143,8 +211,8 @@ function convertToTxt(htmlContent) {
 }
 class DocumentConverterService {
     /**
-     * @param htmlContent
-     * @param format
+     * @param htmlContent  Raw HTML/text returned by the Python backend
+     * @param format       Target format — 'pdf' | 'docx' | 'txt'
      * @returns            { buffer, mimeType, extension }
      */
     async convert(htmlContent, format) {
