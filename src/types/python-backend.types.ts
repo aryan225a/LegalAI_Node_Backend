@@ -76,61 +76,64 @@ export interface DetectLanguageResponse {
   };
 }
 
-
 export interface DocGenRequest {
   template_name: string;
   data: Record<string, any>;
 }
 
+
 export interface DocGenResponse {
   document_content: string;
-}
-
-export interface TemplateInfo {
-  name: string;
-  display_name?: string;
-  description?: string;
-  category?: string;
+  status: 'complete' | 'incomplete' | 'error';
+  template_used: string;
+  completion_percentage: number;
+  total_fields: number;
+  fields_provided: number;
+  missing_fields: string[];
+  critical_fields_missing: string[];
+  ai_generated_fields: string[];
+  warning: string | null;
+  error?: string;
 }
 
 export interface TemplateListResponse {
-  templates: TemplateInfo[];
-  total: number;
+  available_templates: string[];
+  total_count: number;
 }
 
-export interface TemplateSchemaField {
+export interface FieldSchema {
   name: string;
-  type: string;
   required: boolean;
-  critical: boolean;
-  description?: string;
-  default?: any;
-  examples?: any[];
+  field_type: string;
+  description: string;
+  placeholder: string;
 }
 
 export interface TemplateSchemaResponse {
   template_name: string;
-  critical_fields: TemplateSchemaField[];
-  optional_fields: TemplateSchemaField[];
-  all_fields: TemplateSchemaField[];
+  all_fields: FieldSchema[];
+  critical_fields: string[];
+  optional_fields: string[];
+  total_fields: number;
+  supports_auto_generation: boolean;
 }
 
-export interface TemplateMetadata {
-  title?: string;
-  description?: string;
-  category?: string;
-  version?: string;
-  author?: string;
-  [key: string]: any;
+export interface TemplateInfo {
+  name: string;
+  display_name: string;
+  description: string;
+  category: string;
+  icon: string;
 }
 
 export interface TemplateDetailResponse {
-  template_name: string;
-  metadata: TemplateMetadata;
+  template_info: TemplateInfo;
   schema: TemplateSchemaResponse;
 }
 
 export interface TemplateCriticalFieldsResponse {
   template_name: string;
   critical_fields: string[];
+  count: number;
+  note: string;
 }

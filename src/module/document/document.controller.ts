@@ -49,10 +49,14 @@ class DocumentController {
 
       const result = await documentService.generateDocument(userId, template_name, data, format);
 
-      res.status(201).json({
-        success: true,
-        data: result,
-      });
+      const safeTitle = result.document.title.replace(/[^a-z0-9_\-. ]/gi, '_');
+      res.setHeader('Content-Type', result.mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="${safeTitle}.${result.extension}"`);
+      res.setHeader('X-Document-Id', result.document.id);
+      res.setHeader('X-Generation-Status', result.generationStatus);
+      res.setHeader('X-Completion-Percentage', String(result.completionPercentage));
+      if (result.warning) res.setHeader('X-Generation-Warning', result.warning);
+      res.status(201).send(result.fileBuffer);
     } catch (error) {
       next(error);
     }
@@ -114,6 +118,26 @@ class DocumentController {
         success: true,
         message: 'Document deleted successfully',
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+  async downloadDocument(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const { id } = req.params;
+
+      if (!id) {
+        return res.status(400).json({ success: false, message: 'Document ID is required' });
+      }
+
+      const { buffer, mimeType, extension, title } =
+        await documentService.getDocumentFile(userId, id);
+
+      const safeTitle = title.replace(/[^a-z0-9_\-. ]/gi, '_');
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="${safeTitle}.${extension}"`);
+      res.send(buffer);
     } catch (error) {
       next(error);
     }

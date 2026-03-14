@@ -1,9 +1,10 @@
+import { type ConvertFormat } from './document-converter.js';
 declare class DocumentService {
     listTemplates(): Promise<import("../../types/python-backend.types.js").TemplateListResponse>;
     getTemplateSchema(templateName: string): Promise<import("../../types/python-backend.types.js").TemplateSchemaResponse>;
     getTemplateInfo(templateName: string): Promise<import("../../types/python-backend.types.js").TemplateDetailResponse>;
     getTemplateCriticalFields(templateName: string): Promise<import("../../types/python-backend.types.js").TemplateCriticalFieldsResponse>;
-    generateDocument(userId: string, templateName: string, data: Record<string, any>, format?: string): Promise<{
+    generateDocument(userId: string, templateName: string, data: Record<string, any>, format?: ConvertFormat): Promise<{
         document: {
             id: string;
             createdAt: Date;
@@ -17,7 +18,19 @@ declare class DocumentService {
             prompt: string | null;
             generatedBy: string | null;
         };
-        downloadUrl: string;
+        fileBuffer: Buffer<ArrayBufferLike>;
+        mimeType: string;
+        extension: string;
+        generationStatus: "error" | "complete" | "incomplete";
+        completionPercentage: number;
+        missingFields: string[];
+        warning: string | null;
+    }>;
+    getDocumentFile(userId: string, documentId: string): Promise<{
+        buffer: Buffer;
+        mimeType: string;
+        extension: string;
+        title: string;
     }>;
     getUserDocuments(userId: string): Promise<{
         id: string;

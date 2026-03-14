@@ -113,4 +113,13 @@ router.delete(
     documentController.deleteDocument(req as AuthRequest, res, next)
 );
 
+
+router.get(
+  '/:id/download',
+  documentIdValidation,
+  validateRequest,
+  (req: Request, res: Response, next: NextFunction) =>
+    documentController.downloadDocument(req as AuthRequest, res, next)
+);
+
 export default router;

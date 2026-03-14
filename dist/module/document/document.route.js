@@ -48,5 +48,6 @@ router.post('/', generateDocumentValidation, validateRequest, (req, res, next) =
 router.get('/', (req, res, next) => documentController.getDocuments(req, res, next));
 router.get('/:id', documentIdValidation, validateRequest, (req, res, next) => documentController.getDocument(req, res, next));
 router.delete('/:id', documentIdValidation, validateRequest, (req, res, next) => documentController.deleteDocument(req, res, next));
+router.get('/:id/download', documentIdValidation, validateRequest, (req, res, next) => documentController.downloadDocument(req, res, next));
 export default router;
 //# sourceMappingURL=document.route.js.map

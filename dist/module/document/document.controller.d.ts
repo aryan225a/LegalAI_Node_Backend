@@ -9,6 +9,7 @@ declare class DocumentController {
     getDocuments(req: AuthRequest, res: Response, next: NextFunction): Promise<void>;
     getDocument(req: AuthRequest, res: Response, next: NextFunction): Promise<Response<any, Record<string, any>> | undefined>;
     deleteDocument(req: AuthRequest, res: Response, next: NextFunction): Promise<Response<any, Record<string, any>> | undefined>;
+    downloadDocument(req: AuthRequest, res: Response, next: NextFunction): Promise<Response<any, Record<string, any>> | undefined>;
 }
 declare const _default: DocumentController;
 export default _default;
