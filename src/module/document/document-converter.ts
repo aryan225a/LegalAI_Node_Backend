@@ -1,7 +1,6 @@
 import puppeteer from 'puppeteer';
 import HTMLtoDOCX from 'html-to-docx';
 import type HtmlToDocx from 'html-to-docx';
-import { existsSync } from 'fs';
 
 
 export type ConvertFormat = 'pdf' | 'docx' | 'txt';
@@ -103,9 +102,7 @@ function buildFullHtml(rawHtml: string): string {
 // ============================================================================
 
 async function convertToPdf(htmlContent: string): Promise<Buffer> {
-  const chromePath = findChromeExecutable();
-
-  const launchOptions: any = {
+  const browser = await puppeteer.launch({
     headless: true,
     args: [
       '--no-sandbox',
@@ -113,13 +110,7 @@ async function convertToPdf(htmlContent: string): Promise<Buffer> {
       '--disable-dev-shm-usage',
       '--disable-gpu',
     ],
-  };
-
-  if (chromePath) {
-    launchOptions.executablePath = chromePath;
-  }
-
-  const browser = await puppeteer.launch(launchOptions);
+  });
 
   try {
     const page = await browser.newPage();
@@ -140,36 +131,6 @@ async function convertToPdf(htmlContent: string): Promise<Buffer> {
   } finally {
     await browser.close();
   }
-}
-
-
-function findChromeExecutable(): string | undefined {
-  const envPaths = [
-    process.env.PUPPETEER_EXECUTABLE_PATH,
-    process.env.CHROME_PATH,
-    process.env.CHROME_BIN,
-    process.env.GOOGLE_CHROME_BIN,
-  ].filter(Boolean) as string[];
-
-  for (const p of envPaths) {
-    if (p && existsSync(p)) return p;
-  }
-
-  const commonPaths = [
-    '/usr/bin/google-chrome-stable',
-    '/usr/bin/google-chrome',
-    '/usr/bin/chromium-browser',
-    '/usr/bin/chromium',
-    '/snap/bin/chromium',
-    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-  ];
-
-  for (const p of commonPaths) {
-    if (existsSync(p)) return p;
-  }
-
-  return undefined;
 }
 
 
