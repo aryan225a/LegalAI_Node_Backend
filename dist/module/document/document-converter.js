@@ -1,4 +1,5 @@
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 import HTMLtoDOCX from 'html-to-docx';
 function buildFullHtml(rawHtml) {
     const isFullDocument = /<html[\s>]/i.test(rawHtml);
@@ -74,18 +75,13 @@ function buildFullHtml(rawHtml) {
 </body>
 </html>`;
 }
-// ============================================================================
-// PDF CONVERSION  (Puppeteer)
-// ============================================================================
 async function convertToPdf(htmlContent) {
+    const executablePath = await chromium.executablePath();
     const browser = await puppeteer.launch({
+        args: chromium.args,
+        executablePath,
         headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-        ],
+        defaultViewport: { width: 1280, height: 900 },
     });
     try {
         const page = await browser.newPage();

@@ -1,4 +1,5 @@
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 import HTMLtoDOCX from 'html-to-docx';
 import type HtmlToDocx from 'html-to-docx';
 
@@ -17,7 +18,7 @@ interface DocxOptions extends HtmlToDocx.DocumentOptions {
   footer?: boolean;
   lineHeight?: number;
   margins?: HtmlToDocx.DocumentOptions['margins'] & {
-    footer?: number;
+    footer?: number; // corrects the `fotter` typo in the upstream types
   };
 }
 
@@ -97,19 +98,17 @@ function buildFullHtml(rawHtml: string): string {
 </html>`;
 }
 
-// ============================================================================
-// PDF CONVERSION  (Puppeteer)
-// ============================================================================
+
 
 async function convertToPdf(htmlContent: string): Promise<Buffer> {
-  const browser = await puppeteer.launch({
+
+  const executablePath = await chromium.executablePath();
+
+    const browser = await puppeteer.launch({
+    args: chromium.args,
+    executablePath,
     headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-    ],
+    defaultViewport: { width: 1280, height: 900 },
   });
 
   try {
@@ -133,8 +132,6 @@ async function convertToPdf(htmlContent: string): Promise<Buffer> {
   }
 }
 
-
-
 async function convertToDocx(htmlContent: string): Promise<Buffer> {
   const options: DocxOptions = {
     table: { row: { cantSplit: true } },
@@ -149,7 +146,7 @@ async function convertToDocx(htmlContent: string): Promise<Buffer> {
     },
     font: 'Times New Roman',
     fontSize: 24, 
-    lineHeight: 276, 
+    lineHeight: 276,
   };
 
   const docxBuffer = await HTMLtoDOCX(buildFullHtml(htmlContent), null, options);
@@ -183,7 +180,7 @@ function convertToTxt(htmlContent: string): Buffer {
 class DocumentConverterService {
   /**
    * @param htmlContent  
-   * @param format       
+   * @param format      
    * @returns            { buffer, mimeType, extension }
    */
   async convert(htmlContent: string, format: ConvertFormat): Promise<ConversionResult> {
@@ -211,6 +208,7 @@ class DocumentConverterService {
         throw new Error(`Unsupported format: ${format}`);
     }
   }
+
 
   mimeTypeFor(format: ConvertFormat): string {
     const map: Record<ConvertFormat, string> = {
