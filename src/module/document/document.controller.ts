@@ -55,7 +55,14 @@ class DocumentController {
       res.setHeader('X-Document-Id', result.document.id);
       res.setHeader('X-Generation-Status', result.generationStatus);
       res.setHeader('X-Completion-Percentage', String(result.completionPercentage));
-      if (result.warning) res.setHeader('X-Generation-Warning', result.warning);
+      if (result.warning) {
+        const safeWarning = result.warning
+          .replace(/[\r\n]+/g, ' ')
+          .replace(/[^\x20-\x7E]/g, '')
+          .trim()
+          .slice(0, 500);
+        if (safeWarning) res.setHeader('X-Generation-Warning', safeWarning);
+      }
       res.status(201).send(result.fileBuffer);
     } catch (error) {
       next(error);
